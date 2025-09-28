@@ -6,41 +6,39 @@ import java.util.Optional;
 import com.recetas.backend.domain.entity.Receta;
 
 /**
- * Interfaz para el servicio de gestión de recetas.
+ * Interfaz para los servicios relacionados con la gestión de recetas.
  */
 public interface RecetaService {
 
     /**
-     * Guarda una nueva receta o actualiza una existente.
-     *
-     * @param receta La receta a guardar.
-     * @return La receta guardada.
+     * Da "me gusta" a una receta.
+     * 
+     * @param usuarioId El ID del usuario que da "me gusta".
+     * @param recetaId  El ID de la receta a la que se da "me gusta".
      */
+    void darMeGusta(Integer usuarioId, Integer recetaId);
+
+    /**
+     * Quita el "me gusta" de una receta.
+     * 
+     * @param usuarioId El ID del usuario que quita el "me gusta".
+     * @param recetaId  El ID de la receta a la que se quita el "me gusta".
+     */
+    void quitarMeGusta(Integer usuarioId, Integer recetaId);
+
+    /**
+     * Busca una receta por su ID.
+     * 
+     * @param id El ID de la receta a buscar.
+     * @return La receta si se encuentra, o null si no existe.
+     */
+    Receta findById(Integer id);
+
     Receta guardarReceta(Receta receta);
 
-    /**
-     * Obtiene una lista de todas las recetas.
-     *
-     * @return Una lista de todas las recetas.
-     */
     List<Receta> obtenerTodasLasRecetas();
 
-    /**
-     * Obtiene una receta por su ID.
-     *
-     * @param id El ID de la receta.
-     * @return Un Optional que contiene la receta si se encuentra, o vacío en caso
-     *         contrario.
-     */
     Optional<Receta> obtenerRecetaPorId(Integer id);
 
-    /**
-     * Elimina una receta por su ID.
-     *
-     * @param id El ID de la receta a eliminar.
-     */
     void eliminarReceta(Integer id);
-
-    // Aquí se pueden añadir métodos para operaciones más específicas,
-    // como buscar recetas por usuario, por categoría, etc.
 }

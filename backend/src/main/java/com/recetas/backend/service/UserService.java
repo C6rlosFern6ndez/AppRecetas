@@ -1,64 +1,71 @@
 package com.recetas.backend.service;
 
-import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import com.recetas.backend.domain.dto.SignupRequestDto;
-import com.recetas.backend.domain.entity.Rol;
 import com.recetas.backend.domain.entity.Usuario;
-import com.recetas.backend.domain.repository.RolRepository;
-import com.recetas.backend.domain.repository.UsuarioRepository;
 
 /**
- * Servicio para la gestión de usuarios.
+ * Interfaz para los servicios relacionados con la gestión de usuarios.
  */
-@Service
-public class UserService {
-
-    @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    @Autowired
-    private RolRepository rolRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+public interface UserService {
 
     /**
-     * Registra un nuevo usuario en el sistema.
-     *
-     * @param signupRequestDto DTO con los datos del nuevo usuario.
-     * @return El usuario recién creado.
-     * @throws IllegalArgumentException si el nombre de usuario o el email ya
-     *                                  existen.
+     * Registra un nuevo usuario.
+     * 
+     * @param usuario El usuario a registrar.
+     * @return El usuario registrado.
      */
-    public Usuario registrarUsuario(SignupRequestDto signupRequestDto) {
-        if (usuarioRepository.existsByNombreUsuario(signupRequestDto.getNombreUsuario())) {
-            throw new IllegalArgumentException(
-                    "El nombre de usuario '" + signupRequestDto.getNombreUsuario() + "' ya está en uso.");
-        }
-        if (usuarioRepository.existsByEmail(signupRequestDto.getEmail())) {
-            throw new IllegalArgumentException("El email '" + signupRequestDto.getEmail() + "' ya está en uso.");
-        }
+    Usuario saveUser(Usuario usuario);
 
-        Usuario usuario = new Usuario();
-        usuario.setNombreUsuario(signupRequestDto.getNombreUsuario());
-        usuario.setEmail(signupRequestDto.getEmail());
-        usuario.setContrasena(passwordEncoder.encode(signupRequestDto.getContrasena()));
+    /**
+     * Busca un usuario por su correo electrónico.
+     * 
+     * @param email El correo electrónico del usuario.
+     * @return Un Optional que contiene el usuario si se encuentra, o vacío si no.
+     */
+    Optional<Usuario> findByEmail(String email);
 
-        // Asignar rol por defecto (USER)
-        Rol rolUsuario = rolRepository.findByNombre("USER")
-                .orElseThrow(() -> new IllegalArgumentException("Rol USER no encontrado"));
-        Set<Rol> roles = new HashSet<>();
-        roles.add(rolUsuario);
-        usuario.setRoles(roles);
+    /**
+     * Sigue a otro usuario.
+     * 
+     * @param seguidorId El ID del usuario que sigue.
+     * @param seguidoId  El ID del usuario que es seguido.
+     */
+    void seguirUsuario(Integer seguidorId, Integer seguidoId);
 
-        return usuarioRepository.save(usuario);
-    }
+    /**
+     * Deja de seguir a otro usuario.
+     * 
+     * @param seguidorId El ID del usuario que deja de seguir.
+     * @param seguidoId  El ID del usuario que deja de ser seguido.
+     */
+    void dejarDeSeguirUsuario(Integer seguidorId, Integer seguidoId);
 
-    // Otros métodos del servicio (login, etc.) irán aquí
+    /**
+     * Obtiene la lista de usuarios que siguen a un usuario dado.
+     * 
+     * @param userId El ID del usuario.
+     * @return Un conjunto de usuarios que siguen al usuario dado.
+     */
+    Set<Usuario> obtenerSeguidores(Integer userId);
+
+    /**
+     * Obtiene la lista de usuarios a los que sigue un usuario dado.
+     * 
+     * @param userId El ID del usuario.
+     * @return Un conjunto de usuarios a los que sigue el usuario dado.
+     */
+    Set<Usuario> obtenerSeguidos(Integer userId);
+
+    /**
+     * Busca un usuario por su ID.
+     * 
+     * @param id El ID del usuario a buscar.
+     * @return El objeto Usuario si se encuentra, o null si no existe.
+     */
+    Usuario findById(Integer id);
+
+    Usuario registrarUsuario(SignupRequestDto signupRequestDto);
 }

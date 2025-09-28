@@ -48,6 +48,9 @@ public class Notificacion {
     @JoinColumn(name = "receta_id")
     private Receta receta; // Receta asociada a la notificacion (ej. la que recibe el like)
 
+    @Column(columnDefinition = "TEXT")
+    private String mensaje; // Mensaje de la notificación
+
     private boolean leida = false;
 
     @Column(name = "fecha_creacion", updatable = false)

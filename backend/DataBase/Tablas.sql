@@ -1,56 +1,59 @@
-Drop database if exists recetas_db;
-
--- Usar una base de datos (cámbiala por el nombre que prefieras)
+DROP DATABASE IF EXISTS `recetas_db`;
 CREATE DATABASE IF NOT EXISTS `recetas_db`;
 USE `recetas_db`;
 
--- Tabla de Usuarios
+
 CREATE TABLE `usuarios` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `nombre_usuario` VARCHAR(50) NOT NULL,
-  `email` VARCHAR(100) NOT NULL,
+  `nombre_usuario` VARCHAR(50) NOT NULL UNIQUE,
+  `email` VARCHAR(100) NOT NULL UNIQUE,
   `contrasena` VARCHAR(255) NOT NULL,
+  `url_foto_perfil` VARCHAR(255) NULL,
   `fecha_registro` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE INDEX `email_UNIQUE` (`email` ASC),
-  UNIQUE INDEX `nombre_usuario_UNIQUE` (`nombre_usuario` ASC)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 
--- Tabla de Categorías
-CREATE TABLE `categorias` (
+
+CREATE TABLE `roles` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `nombre` VARCHAR(50) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE INDEX `nombre_UNIQUE` (`nombre` ASC)
+  `nombre` VARCHAR(20) NOT NULL UNIQUE, 
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 
--- Tabla de Ingredientes
-CREATE TABLE `ingredientes` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `nombre` VARCHAR(100) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE INDEX `nombre_UNIQUE` (`nombre` ASC)
+
+CREATE TABLE `usuario_roles` (
+  `usuario_id` INT NOT NULL,
+  `rol_id` INT NOT NULL,
+  PRIMARY KEY (`usuario_id`, `rol_id`),
+  FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`rol_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- Tabla de Recetas
+
+CREATE TABLE `seguidores` (
+  `seguidor_id` INT NOT NULL,
+  `seguido_id` INT NOT NULL,
+  PRIMARY KEY (`seguidor_id`, `seguido_id`),
+  FOREIGN KEY (`seguidor_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`seguido_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE `recetas` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `titulo` VARCHAR(100) NOT NULL,
   `descripcion` TEXT NOT NULL,
-  `tiempo_preparacion` INT NULL,
-  `dificultad` ENUM('Fácil', 'Media', 'Difícil') NULL,
-  `porciones` INT NULL,
+  `tiempo_preparacion` INT NOT NULL,
+  `dificultad` ENUM('Fácil', 'Media', 'Difícil') NOT NULL, 
+  `porciones` INT NOT NULL, 
+  `url_imagen` VARCHAR(255) NULL,
   `usuario_id` INT NOT NULL,
   `fecha_creacion` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  INDEX `fk_recetas_usuarios_idx` (`usuario_id` ASC),
-  CONSTRAINT `fk_recetas_usuarios`
-    FOREIGN KEY (`usuario_id`)
-    REFERENCES `usuarios` (`id`)
-    ON DELETE CASCADE
+  FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- Tabla de Pasos
+-- Existing tables (order fine)
+-- ...
 CREATE TABLE `pasos` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `receta_id` INT NOT NULL,
@@ -64,7 +67,13 @@ CREATE TABLE `pasos` (
     ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- Tabla Intermedia: Receta_Categorias
+CREATE TABLE `categorias` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `nombre` VARCHAR(50) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `nombre_UNIQUE` (`nombre` ASC)
+) ENGINE=InnoDB;
+
 CREATE TABLE `receta_categorias` (
   `receta_id` INT NOT NULL,
   `categoria_id` INT NOT NULL,
@@ -81,7 +90,14 @@ CREATE TABLE `receta_categorias` (
     ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- Tabla Intermedia: Receta_Ingredientes
+
+CREATE TABLE `ingredientes` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `nombre` VARCHAR(100) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `nombre_UNIQUE` (`nombre` ASC)
+) ENGINE=InnoDB;
+
 CREATE TABLE `receta_ingredientes` (
   `receta_id` INT NOT NULL,
   `ingrediente_id` INT NOT NULL,
@@ -99,7 +115,6 @@ CREATE TABLE `receta_ingredientes` (
     ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- Tabla de Comentarios
 CREATE TABLE `comentarios` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `receta_id` INT NOT NULL,
@@ -119,7 +134,6 @@ CREATE TABLE `comentarios` (
     ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- Tabla de Calificaciones
 CREATE TABLE `calificaciones` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `receta_id` INT NOT NULL,
@@ -138,4 +152,26 @@ CREATE TABLE `calificaciones` (
     FOREIGN KEY (`usuario_id`)
     REFERENCES `usuarios` (`id`)
     ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE `me_gusta_recetas` (
+  `usuario_id` INT NOT NULL,
+  `receta_id` INT NOT NULL,
+  PRIMARY KEY (`usuario_id`, `receta_id`),
+  FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`receta_id`) REFERENCES `recetas` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE `notificaciones` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `usuario_id` INT NOT NULL,
+  `tipo` ENUM('NUEVO_SEGUIDOR', 'ME_GUSTA_RECETA', 'NUEVO_COMENTARIO'),
+  `emisor_id` INT,
+  `receta_id` INT,
+  `leida` BOOLEAN DEFAULT FALSE,
+  `fecha_creacion` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`emisor_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
+  FOREIGN KEY (`receta_id`) REFERENCES `recetas` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB;
