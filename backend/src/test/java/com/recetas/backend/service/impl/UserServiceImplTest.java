@@ -5,7 +5,6 @@ import com.recetas.backend.domain.entity.SeguidorId;
 import com.recetas.backend.domain.entity.Usuario;
 import com.recetas.backend.domain.repository.SeguidorRepository;
 import com.recetas.backend.domain.repository.UsuarioRepository;
-import com.recetas.backend.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

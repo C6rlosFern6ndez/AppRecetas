@@ -6,7 +6,6 @@ import com.recetas.backend.domain.entity.Usuario;
 import com.recetas.backend.domain.repository.ComentarioRepository;
 import com.recetas.backend.domain.repository.RecetaRepository;
 import com.recetas.backend.domain.repository.UsuarioRepository;
-import com.recetas.backend.service.ComentarioService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

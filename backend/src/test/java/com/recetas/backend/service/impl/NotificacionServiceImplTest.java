@@ -7,7 +7,6 @@ import com.recetas.backend.domain.model.enums.TipoNotificacion;
 import com.recetas.backend.domain.repository.NotificacionRepository;
 import com.recetas.backend.domain.repository.RecetaRepository;
 import com.recetas.backend.domain.repository.UsuarioRepository;
-import com.recetas.backend.service.NotificacionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
