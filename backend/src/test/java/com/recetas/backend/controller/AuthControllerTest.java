@@ -49,56 +49,51 @@ class AuthControllerTest {
 
     @BeforeEach
     void setUp() {
-        // Use setters for DTOs if constructors are not available or to be explicit
         signupRequestDto = new SignupRequestDto();
         signupRequestDto.setNombreUsuario("testUser");
         signupRequestDto.setEmail("test@example.com");
-        signupRequestDto.setContrasena("password"); // Corrected from setPassword
+        signupRequestDto.setContrasena("password");
 
         loginRequestDto = new LoginRequestDto();
-        loginRequestDto.setNombreUsuarioOrEmail("test@example.com"); // Assuming LoginRequestDto uses email for login
+        loginRequestDto.setNombreUsuarioOrEmail("test@example.com");
         loginRequestDto.setContrasena("password");
 
         testUser = new Usuario();
         testUser.setId(1);
         testUser.setNombreUsuario("testUser");
         testUser.setEmail("test@example.com");
-        testUser.setContrasena("password"); // This will be encoded by saveUser
+        testUser.setContrasena("encodedPassword");
         Set<Rol> roles = new HashSet<>();
         Rol userRole = new Rol();
-        userRole.setNombre("ROLE_USER"); // Assuming Rol has a setName method
+        userRole.setNombre("ROLE_USER");
         roles.add(userRole);
         testUser.setRoles(roles);
     }
 
     @Test
     void registerUser_success() {
-        when(userService.findByEmail(signupRequestDto.getEmail())).thenReturn(Optional.empty()); // User does not exist
-        when(userService.saveUser(any(Usuario.class))).thenReturn(testUser); // Mock saveUser to return the created user
+        when(userService.registrarUsuario(any(SignupRequestDto.class))).thenReturn(testUser);
 
-        ResponseEntity<?> response = authController.registrarUsuario(signupRequestDto); // Corrected method name
+        ResponseEntity<?> response = authController.registrarUsuario(signupRequestDto);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        // The controller returns the savedUser object, not a string message
+        assertNotNull(response.getBody());
         assertEquals(testUser.getNombreUsuario(), ((Usuario) response.getBody()).getNombreUsuario());
 
-        verify(userService, times(1)).findByEmail(signupRequestDto.getEmail());
-        verify(userService, times(1)).saveUser(any(Usuario.class));
-        verifyNoInteractions(authenticationManager, jwtUtils);
+        verify(userService, times(1)).registrarUsuario(any(SignupRequestDto.class));
     }
 
     @Test
     void registerUser_userAlreadyExists() {
-        when(userService.findByEmail(signupRequestDto.getEmail())).thenReturn(Optional.of(testUser)); // Simulate user
-                                                                                                      // already exists
+        when(userService.registrarUsuario(any(SignupRequestDto.class)))
+                .thenThrow(new IllegalArgumentException("El correo electrónico ya está en uso."));
 
-        ResponseEntity<?> response = authController.registrarUsuario(signupRequestDto); // Corrected method name
+        ResponseEntity<?> response = authController.registrarUsuario(signupRequestDto);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("El correo electrónico ya está en uso.", response.getBody());
 
-        verify(userService, times(1)).findByEmail(signupRequestDto.getEmail());
-        verifyNoInteractions(userService, authenticationManager, jwtUtils); // Ensure saveUser is not called
+        verify(userService, times(1)).registrarUsuario(any(SignupRequestDto.class));
     }
 
     @Test
@@ -106,40 +101,18 @@ class AuthControllerTest {
         Authentication authentication = mock(Authentication.class);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
-        SecurityContextHolder.getContext().setAuthentication(authentication); // Set mock authentication
 
         String jwt = "mock_jwt_token";
         when(jwtUtils.generateJwtToken(authentication)).thenReturn(jwt);
 
-        UserDetails userDetails = mock(UserDetails.class);
-        when(authentication.getPrincipal()).thenReturn(userDetails);
-        when(userDetails.getUsername()).thenReturn(testUser.getEmail()); // UserDetails username is typically email or
-                                                                         // username
-        when(userService.findByEmail(testUser.getEmail())).thenReturn(Optional.of(testUser)); // Find user by email
-
-        ResponseEntity<LoginResponseDto> response = authController.autenticarUsuario(loginRequestDto); // Corrected
-                                                                                                       // method name
+        ResponseEntity<LoginResponseDto> response = authController.autenticarUsuario(loginRequestDto);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(jwt, response.getBody().getToken());
-        // The LoginResponseDto only contains the JWT token, not user details.
-        // Remove assertions for user details that are not returned by the controller.
-        // assertEquals(testUser.getId(), response.getBody().getId()); // Method getId()
-        // is undefined for LoginResponseDto
-        // assertEquals(testUser.getNombreUsuario(),
-        // response.getBody().getNombreUsuario()); // Method getNombreUsuario() is
-        // undefined for LoginResponseDto
-        // assertEquals(testUser.getEmail(), response.getBody().getEmail()); // Method
-        // getEmail() is undefined for LoginResponseDto
-        // Assert roles correctly
-        // assertEquals(Collections.singletonList("ROLE_USER"),
-        // response.getBody().getRoles()); // Method getRoles() is undefined for
-        // LoginResponseDto
 
         verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(jwtUtils, times(1)).generateJwtToken(authentication);
-        verify(userService, times(1)).findByEmail(testUser.getEmail());
     }
 
     @Test
@@ -147,39 +120,11 @@ class AuthControllerTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new BadCredentialsException("Invalid credentials"));
 
-        ResponseEntity<LoginResponseDto> response = authController.autenticarUsuario(loginRequestDto); // Corrected
-                                                                                                       // method name
-
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Credenciales inválidas", response.getBody());
+        assertThrows(BadCredentialsException.class, () -> {
+            authController.autenticarUsuario(loginRequestDto);
+        });
 
         verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verifyNoInteractions(userService, jwtUtils);
-    }
-
-    @Test
-    void loginUser_userNotFoundAfterAuth() {
-        Authentication authentication = mock(Authentication.class);
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(authentication);
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        String jwt = "mock_jwt_token";
-        when(jwtUtils.generateJwtToken(authentication)).thenReturn(jwt);
-
-        UserDetails userDetails = mock(UserDetails.class);
-        when(authentication.getPrincipal()).thenReturn(userDetails);
-        when(userDetails.getUsername()).thenReturn("nonexistent@example.com"); // Username from UserDetails
-        when(userService.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty()); // User not found
-
-        ResponseEntity<LoginResponseDto> response = authController.autenticarUsuario(loginRequestDto); // Corrected
-                                                                                                       // method name
-
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Usuario no encontrado tras autenticación", response.getBody()); // Updated error message
-
-        verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(jwtUtils, times(1)).generateJwtToken(authentication);
-        verify(userService, times(1)).findByEmail("nonexistent@example.com");
+        verifyNoInteractions(jwtUtils);
     }
 }

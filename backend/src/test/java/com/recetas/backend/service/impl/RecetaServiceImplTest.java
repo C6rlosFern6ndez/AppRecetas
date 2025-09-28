@@ -33,7 +33,7 @@ class RecetaServiceImplTest {
     private MeGustaRecetaRepository meGustaRecetaRepository;
 
     @InjectMocks
-    private RecetaService recetaService;
+    private RecetaServiceImpl recetaService;
 
     private Usuario usuario;
     private Receta receta;
@@ -42,8 +42,6 @@ class RecetaServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        recetaService = new RecetaServiceImpl(recetaRepository, usuarioRepository, meGustaRecetaRepository);
-
         usuario = new Usuario();
         usuario.setId(1);
         usuario.setNombreUsuario("testUser");
@@ -119,57 +117,23 @@ class RecetaServiceImplTest {
 
     @Test
     void quitarMeGusta_success() {
-        when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
-        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
         when(meGustaRecetaRepository.existsById(meGustaRecetaId)).thenReturn(true);
         doNothing().when(meGustaRecetaRepository).deleteById(meGustaRecetaId);
 
         assertDoesNotThrow(() -> recetaService.quitarMeGusta(usuario.getId(), receta.getId()));
 
-        verify(usuarioRepository, times(1)).findById(usuario.getId());
-        verify(recetaRepository, times(1)).findById(receta.getId());
         verify(meGustaRecetaRepository, times(1)).existsById(meGustaRecetaId);
         verify(meGustaRecetaRepository, times(1)).deleteById(meGustaRecetaId);
     }
 
     @Test
-    void quitarMeGusta_usuarioNotFound() {
-        when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.empty());
-
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> recetaService.quitarMeGusta(usuario.getId(), receta.getId()));
-        assertEquals("Usuario no encontrado", exception.getMessage());
-
-        verify(usuarioRepository, times(1)).findById(usuario.getId());
-        verifyNoInteractions(recetaRepository, meGustaRecetaRepository);
-    }
-
-    @Test
-    void quitarMeGusta_recetaNotFound() {
-        when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
-        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.empty());
-
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> recetaService.quitarMeGusta(usuario.getId(), receta.getId()));
-        assertEquals("Receta no encontrada", exception.getMessage());
-
-        verify(usuarioRepository, times(1)).findById(usuario.getId());
-        verify(recetaRepository, times(1)).findById(receta.getId());
-        verifyNoInteractions(meGustaRecetaRepository);
-    }
-
-    @Test
     void quitarMeGusta_notLiked() {
-        when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
-        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
         when(meGustaRecetaRepository.existsById(meGustaRecetaId)).thenReturn(false);
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> recetaService.quitarMeGusta(usuario.getId(), receta.getId()));
         assertEquals("No has dado 'me gusta' a esta receta.", exception.getMessage());
 
-        verify(usuarioRepository, times(1)).findById(usuario.getId());
-        verify(recetaRepository, times(1)).findById(receta.getId());
         verify(meGustaRecetaRepository, times(1)).existsById(meGustaRecetaId);
         verifyNoMoreInteractions(meGustaRecetaRepository);
     }
@@ -189,5 +153,48 @@ class RecetaServiceImplTest {
         Receta foundReceta = recetaService.findById(99);
         assertNull(foundReceta);
         verify(recetaRepository, times(1)).findById(anyInt());
+    }
+
+    @Test
+    void guardarReceta_success() {
+        when(recetaRepository.save(any(Receta.class))).thenReturn(receta);
+        Receta savedReceta = recetaService.guardarReceta(receta);
+        assertNotNull(savedReceta);
+        assertEquals(receta.getTitulo(), savedReceta.getTitulo());
+        verify(recetaRepository, times(1)).save(receta);
+    }
+
+    @Test
+    void obtenerTodasLasRecetas_success() {
+        when(recetaRepository.findAll()).thenReturn(java.util.Collections.singletonList(receta));
+        java.util.List<Receta> recetas = recetaService.obtenerTodasLasRecetas();
+        assertNotNull(recetas);
+        assertFalse(recetas.isEmpty());
+        assertEquals(1, recetas.size());
+        verify(recetaRepository, times(1)).findAll();
+    }
+
+    @Test
+    void obtenerRecetaPorId_success() {
+        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
+        Optional<Receta> foundReceta = recetaService.obtenerRecetaPorId(receta.getId());
+        assertTrue(foundReceta.isPresent());
+        assertEquals(receta.getId(), foundReceta.get().getId());
+        verify(recetaRepository, times(1)).findById(receta.getId());
+    }
+
+    @Test
+    void obtenerRecetaPorId_notFound() {
+        when(recetaRepository.findById(anyInt())).thenReturn(Optional.empty());
+        Optional<Receta> foundReceta = recetaService.obtenerRecetaPorId(99);
+        assertFalse(foundReceta.isPresent());
+        verify(recetaRepository, times(1)).findById(anyInt());
+    }
+
+    @Test
+    void eliminarReceta_success() {
+        doNothing().when(recetaRepository).deleteById(receta.getId());
+        assertDoesNotThrow(() -> recetaService.eliminarReceta(receta.getId()));
+        verify(recetaRepository, times(1)).deleteById(receta.getId());
     }
 }

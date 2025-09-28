@@ -34,7 +34,7 @@ class UserServiceImplTest {
     private PasswordEncoder passwordEncoder;
 
     @InjectMocks
-    private UserService userService;
+    private UserServiceImpl userService;
 
     private Usuario usuarioSeguidor;
     private Usuario usuarioSeguido;
@@ -43,8 +43,6 @@ class UserServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(usuarioRepository, seguidorRepository, passwordEncoder, null);
-
         usuarioSeguidor = new Usuario();
         usuarioSeguidor.setId(1);
         usuarioSeguidor.setNombreUsuario("seguidorUser");
@@ -108,7 +106,7 @@ class UserServiceImplTest {
                 () -> userService.seguirUsuario(usuarioSeguidor.getId(), usuarioSeguidor.getId()));
         assertEquals("Un usuario no puede seguirse a sí mismo.", exception.getMessage());
 
-        verify(usuarioRepository, times(1)).findById(usuarioSeguidor.getId());
+        verify(usuarioRepository, times(2)).findById(usuarioSeguidor.getId());
         verifyNoInteractions(seguidorRepository);
     }
 

@@ -91,25 +91,21 @@ public class RecetaServiceImpl implements RecetaService {
 
     @Override
     public Receta guardarReceta(Receta receta) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'guardarReceta'");
+        return recetaRepository.save(receta);
     }
 
     @Override
     public List<Receta> obtenerTodasLasRecetas() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'obtenerTodasLasRecetas'");
+        return recetaRepository.findAll();
     }
 
     @Override
     public Optional<Receta> obtenerRecetaPorId(Integer id) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'obtenerRecetaPorId'");
+        return recetaRepository.findById(id);
     }
 
     @Override
     public void eliminarReceta(Integer id) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'eliminarReceta'");
+        recetaRepository.deleteById(id);
     }
 }

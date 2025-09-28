@@ -32,7 +32,7 @@ class ComentarioServiceImplTest {
     private RecetaRepository recetaRepository;
 
     @InjectMocks
-    private ComentarioService comentarioService;
+    private ComentarioServiceImpl comentarioService;
 
     private Usuario usuario;
     private Receta receta;
@@ -40,8 +40,6 @@ class ComentarioServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        comentarioService = new ComentarioServiceImpl(comentarioRepository, usuarioRepository, recetaRepository);
-
         usuario = new Usuario();
         usuario.setId(1);
         usuario.setNombreUsuario("testUser");

@@ -36,7 +36,7 @@ class NotificacionServiceImplTest {
     private RecetaRepository recetaRepository;
 
     @InjectMocks
-    private NotificacionService notificacionService;
+    private NotificacionServiceImpl notificacionService;
 
     private Usuario usuario;
     private Receta receta;
@@ -44,8 +44,6 @@ class NotificacionServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        notificacionService = new NotificacionServiceImpl(notificacionRepository, usuarioRepository, recetaRepository);
-
         usuario = new Usuario();
         usuario.setId(1);
         usuario.setNombreUsuario("testUser");

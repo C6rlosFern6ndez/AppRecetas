@@ -32,7 +32,7 @@ class CalificacionServiceImplTest {
     private RecetaRepository recetaRepository;
 
     @InjectMocks
-    private CalificacionService calificacionService;
+    private CalificacionServiceImpl calificacionService;
 
     private Usuario usuario;
     private Receta receta;
@@ -40,8 +40,6 @@ class CalificacionServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        calificacionService = new CalificacionServiceImpl(calificacionRepository, usuarioRepository, recetaRepository);
-
         usuario = new Usuario();
         usuario.setId(1);
         usuario.setNombreUsuario("testUser");
