@@ -1,0 +1,89 @@
+// 1. Importar variables y mixins
+@import 'variables';
+@import 'mixins';
+
+// 2. Reseteo básico y estilos globales
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: $font-family-primary;
+  font-size: $font-size-base;
+  color: $text-color;
+  background-color: $background-color;
+  line-height: 1.6;
+}
+
+a {
+  color: $primary-color;
+  text-decoration: none;
+  @include transition;
+
+  &:hover {
+    color: darken($primary-color, 10%);
+  }
+}
+
+ul {
+  list-style: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: $font-weight-bold;
+  margin-bottom: $spacing-md;
+}
+
+main {
+  padding: $spacing-lg;
+  min-height: calc(100vh - 120px); // Ajustar según la altura del header y footer
+}
+
+// 3. Estilos para componentes comunes (ej. botones)
+
+.btn {
+  @include button-styles($primary-color, $white);
+}
+
+.btn-secondary {
+  @include button-styles($secondary-color, $white);
+}
+
+// Estilos para formularios
+form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: $spacing-lg;
+  background-color: $white;
+  border-radius: $border-radius;
+  border: 1px solid $border-color;
+}
+
+form div {
+  display: flex;
+  flex-direction: column;
+}
+
+form label {
+  margin-bottom: $spacing-sm;
+  font-weight: $font-weight-bold;
+}
+
+form input {
+  padding: $spacing-sm;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  font-size: $font-size-base;
+}
+
+form button {
+  @include button-styles($primary-color, $white);
+  align-self: flex-start;
+}

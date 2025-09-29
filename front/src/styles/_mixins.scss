@@ -1,0 +1,47 @@
+// Mixin para centrar elementos con Flexbox
+@mixin flex-center($direction: row, $justify: center, $align: center) {
+  display: flex;
+  flex-direction: $direction;
+  justify-content: $justify;
+  align-items: $align;
+}
+
+// Mixin para transiciones
+@mixin transition($property: all, $duration: 0.3s, $timing-function: ease-in-out) {
+  transition: $property $duration $timing-function;
+}
+
+// Mixin para media queries (responsive design)
+// Ejemplo de uso: @include respond-to(medium) { ... }
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == small {
+    @media (max-width: 600px) { @content; }
+  }
+  @else if $breakpoint == medium {
+    @media (max-width: 900px) { @content; }
+  }
+  @else if $breakpoint == large {
+    @media (max-width: 1200px) { @content; }
+  }
+}
+
+// Mixin para estilos de botones
+@mixin button-styles($bg-color, $text-color) {
+  background-color: $bg-color;
+  color: $text-color;
+  padding: $spacing-sm $spacing-md;
+  border: none;
+  border-radius: $border-radius;
+  cursor: pointer;
+  font-weight: $font-weight-bold;
+  @include transition;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &:disabled {
+    background-color: lighten($bg-color, 20%);
+    cursor: not-allowed;
+  }
+}
