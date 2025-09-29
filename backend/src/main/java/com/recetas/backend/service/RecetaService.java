@@ -2,8 +2,13 @@ package com.recetas.backend.service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
+import com.recetas.backend.domain.entity.Calificacion;
+import com.recetas.backend.domain.entity.Comentario;
+import com.recetas.backend.domain.entity.Notificacion;
 import com.recetas.backend.domain.entity.Receta;
+import com.recetas.backend.domain.model.enums.TipoNotificacion;
 
 /**
  * Interfaz para los servicios relacionados con la gestión de recetas.
@@ -27,6 +32,22 @@ public interface RecetaService {
     void quitarMeGusta(Integer usuarioId, Integer recetaId);
 
     /**
+     * Añade un comentario a una receta.
+     * 
+     * @param comentario El comentario a añadir.
+     * @return El comentario guardado.
+     */
+    Comentario agregarComentario(Comentario comentario);
+
+    /**
+     * Obtiene todos los comentarios de una receta específica.
+     * 
+     * @param recetaId El ID de la receta.
+     * @return Una lista de comentarios para la receta dada.
+     */
+    Set<Comentario> obtenerComentariosDeReceta(Integer recetaId);
+
+    /**
      * Busca una receta por su ID.
      * 
      * @param id El ID de la receta a buscar.
@@ -41,4 +62,36 @@ public interface RecetaService {
     Optional<Receta> obtenerRecetaPorId(Integer id);
 
     void eliminarReceta(Integer id);
+
+    /**
+     * Califica una receta.
+     *
+     * @param usuarioId  El ID del usuario que califica.
+     * @param recetaId   El ID de la receta a calificar.
+     * @param puntuacion La puntuación dada (ej. 1-5).
+     */
+    void calificarReceta(Integer usuarioId, Integer recetaId, Integer puntuacion);
+
+    /**
+     * Obtiene la calificación de una receta por un usuario específico.
+     *
+     * @param usuarioId El ID del usuario.
+     * @param recetaId  El ID de la receta.
+     * @return La calificación si existe, o null si no.
+     */
+    Integer obtenerCalificacionDeReceta(Integer usuarioId, Integer recetaId);
+
+    /**
+     * Crea y guarda una notificación para un usuario.
+     *
+     * @param destinatarioId El ID del usuario que recibirá la notificación.
+     * @param tipo           El tipo de notificación.
+     * @param emisorId       El ID del usuario que originó la notificación (puede
+     *                       ser nulo).
+     * @param recetaId       El ID de la receta asociada a la notificación (puede
+     *                       ser nulo).
+     * @param mensaje        El mensaje de la notificación.
+     */
+    void crearNotificacion(Integer destinatarioId, TipoNotificacion tipo, Integer emisorId, Integer recetaId,
+            String mensaje);
 }

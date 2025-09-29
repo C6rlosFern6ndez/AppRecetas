@@ -1,0 +1,18 @@
+mvn compile
+mvn test
+mvn package
+mvn clean
+mvn install
+mvn clean install
+mvn spring-boot:run
+
+
+Jar ejecutable:
+mvn package
+java -jar target/miapp-0.0.1-SNAPSHOT.jar
+
+actualizar dependencias:
+mvn dependency:resolve
+
+Construir en modo prod:
+mvn clean package -Pprod

@@ -18,14 +18,12 @@ public class App implements CommandLineRunner {
 		try {
 			SpringApplication.run(App.class, args);
 		} catch (Exception e) {
+			if (e.getClass().getName().contains("SilentExitException")) {
+				return;
+			}
 			System.err.println("\n--- ERROR: La aplicación no pudo iniciarse ---");
 			System.err.println("Causa: " + e.getMessage());
-			System.err.println("\n--- Pasos para solucionar el problema ---");
-			System.err
-					.println("1. Asegúrate de que el servidor de la base de datos (MariaDB/MySQL) esté en ejecución.");
-			System.err.println(
-					"2. Verifica que los datos de conexión en 'application.properties' (URL, usuario, contraseña) son correctos.");
-			System.err.println("3. Revisa que el puerto de la aplicación no esté ya en uso por otro proceso.");
+			e.printStackTrace();
 		}
 	}
 
