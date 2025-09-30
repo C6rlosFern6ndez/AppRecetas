@@ -8,4 +8,7 @@ import com.recetas.backend.domain.entity.MeGustaRecetaId;
 
 @Repository
 public interface MeGustaRecetaRepository extends JpaRepository<MeGustaReceta, MeGustaRecetaId> {
+
+    boolean existsById_UsuarioIdAndId_RecetaId(Integer usuarioId, Integer recetaId);
+
 }

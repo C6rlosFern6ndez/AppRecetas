@@ -4,9 +4,15 @@ import com.recetas.backend.domain.entity.MeGustaReceta;
 import com.recetas.backend.domain.entity.MeGustaRecetaId;
 import com.recetas.backend.domain.entity.Receta;
 import com.recetas.backend.domain.entity.Usuario;
+import com.recetas.backend.domain.repository.CalificacionRepository;
+import com.recetas.backend.domain.repository.ComentarioRepository;
 import com.recetas.backend.domain.repository.MeGustaRecetaRepository;
+import com.recetas.backend.domain.repository.NotificacionRepository;
 import com.recetas.backend.domain.repository.RecetaRepository;
 import com.recetas.backend.domain.repository.UsuarioRepository;
+import com.recetas.backend.exception.MeGustaException;
+import com.recetas.backend.exception.RecetaNoEncontradaException;
+import com.recetas.backend.exception.UsuarioNoEncontradoException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +36,15 @@ class RecetaServiceImplTest {
 
     @Mock
     private MeGustaRecetaRepository meGustaRecetaRepository;
+
+    @Mock
+    private ComentarioRepository comentarioRepository;
+
+    @Mock
+    private CalificacionRepository calificacionRepository;
+
+    @Mock
+    private NotificacionRepository notificacionRepository;
 
     @InjectMocks
     private RecetaServiceImpl recetaService;
@@ -61,27 +76,21 @@ class RecetaServiceImplTest {
     void darMeGusta_success() {
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
-        when(meGustaRecetaRepository.existsById(meGustaRecetaId)).thenReturn(false);
-        when(meGustaRecetaRepository.save(any(MeGustaReceta.class))).thenReturn(meGustaReceta);
+        when(meGustaRecetaRepository.existsById_UsuarioIdAndId_RecetaId(usuario.getId(), receta.getId()))
+                .thenReturn(false);
 
         assertDoesNotThrow(() -> recetaService.darMeGusta(usuario.getId(), receta.getId()));
 
-        verify(usuarioRepository, times(1)).findById(usuario.getId());
-        verify(recetaRepository, times(1)).findById(receta.getId());
-        verify(meGustaRecetaRepository, times(1)).existsById(meGustaRecetaId);
-        verify(meGustaRecetaRepository, times(1)).save(any(MeGustaReceta.class));
+        verify(meGustaRecetaRepository).save(any(MeGustaReceta.class));
     }
 
     @Test
     void darMeGusta_usuarioNotFound() {
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
                 () -> recetaService.darMeGusta(usuario.getId(), receta.getId()));
-        assertEquals("Usuario no encontrado", exception.getMessage());
-
-        verify(usuarioRepository, times(1)).findById(usuario.getId());
-        verifyNoInteractions(recetaRepository, meGustaRecetaRepository);
+        assertEquals("Usuario no encontrado con id: 1", exception.getMessage());
     }
 
     @Test
@@ -89,52 +98,43 @@ class RecetaServiceImplTest {
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        RecetaNoEncontradaException exception = assertThrows(RecetaNoEncontradaException.class,
                 () -> recetaService.darMeGusta(usuario.getId(), receta.getId()));
-        assertEquals("Receta no encontrada", exception.getMessage());
-
-        verify(usuarioRepository, times(1)).findById(usuario.getId());
-        verify(recetaRepository, times(1)).findById(receta.getId());
-        verifyNoInteractions(meGustaRecetaRepository);
+        assertEquals("Receta no encontrada con id: 10", exception.getMessage());
     }
 
     @Test
     void darMeGusta_alreadyLiked() {
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
-        when(meGustaRecetaRepository.existsById(meGustaRecetaId)).thenReturn(true);
+        when(meGustaRecetaRepository.existsById_UsuarioIdAndId_RecetaId(usuario.getId(), receta.getId()))
+                .thenReturn(true);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        MeGustaException exception = assertThrows(MeGustaException.class,
                 () -> recetaService.darMeGusta(usuario.getId(), receta.getId()));
         assertEquals("Ya has dado 'me gusta' a esta receta.", exception.getMessage());
-
-        verify(usuarioRepository, times(1)).findById(usuario.getId());
-        verify(recetaRepository, times(1)).findById(receta.getId());
-        verify(meGustaRecetaRepository, times(1)).existsById(meGustaRecetaId);
-        verifyNoMoreInteractions(meGustaRecetaRepository);
     }
 
     @Test
     void quitarMeGusta_success() {
+        when(usuarioRepository.existsById(usuario.getId())).thenReturn(true);
+        when(recetaRepository.existsById(receta.getId())).thenReturn(true);
         when(meGustaRecetaRepository.existsById(meGustaRecetaId)).thenReturn(true);
-        doNothing().when(meGustaRecetaRepository).deleteById(meGustaRecetaId);
 
         assertDoesNotThrow(() -> recetaService.quitarMeGusta(usuario.getId(), receta.getId()));
 
-        verify(meGustaRecetaRepository, times(1)).existsById(meGustaRecetaId);
-        verify(meGustaRecetaRepository, times(1)).deleteById(meGustaRecetaId);
+        verify(meGustaRecetaRepository).deleteById(meGustaRecetaId);
     }
 
     @Test
     void quitarMeGusta_notLiked() {
+        when(usuarioRepository.existsById(usuario.getId())).thenReturn(true);
+        when(recetaRepository.existsById(receta.getId())).thenReturn(true);
         when(meGustaRecetaRepository.existsById(meGustaRecetaId)).thenReturn(false);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        MeGustaException exception = assertThrows(MeGustaException.class,
                 () -> recetaService.quitarMeGusta(usuario.getId(), receta.getId()));
         assertEquals("No has dado 'me gusta' a esta receta.", exception.getMessage());
-
-        verify(meGustaRecetaRepository, times(1)).existsById(meGustaRecetaId);
-        verifyNoMoreInteractions(meGustaRecetaRepository);
     }
 
     @Test

@@ -20,6 +20,9 @@ import com.recetas.backend.domain.repository.MeGustaRecetaRepository;
 import com.recetas.backend.domain.repository.NotificacionRepository;
 import com.recetas.backend.domain.repository.RecetaRepository;
 import com.recetas.backend.domain.repository.UsuarioRepository;
+import com.recetas.backend.exception.MeGustaException;
+import com.recetas.backend.exception.RecetaNoEncontradaException;
+import com.recetas.backend.exception.UsuarioNoEncontradoException;
 import com.recetas.backend.domain.entity.Notificacion;
 import com.recetas.backend.domain.model.enums.TipoNotificacion;
 import com.recetas.backend.service.RecetaService;
@@ -61,17 +64,15 @@ public class RecetaServiceImpl implements RecetaService {
     @Transactional
     public void darMeGusta(Integer usuarioId, Integer recetaId) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado con id: " + usuarioId));
         Receta receta = recetaRepository.findById(recetaId)
-                .orElseThrow(() -> new IllegalArgumentException("Receta no encontrada"));
+                .orElseThrow(() -> new RecetaNoEncontradaException("Receta no encontrada con id: " + recetaId));
 
-        MeGustaRecetaId id = new MeGustaRecetaId(usuarioId, recetaId);
-
-        // Verificar si ya existe el "me gusta" para evitar duplicados
-        if (meGustaRecetaRepository.existsById(id)) {
-            throw new IllegalArgumentException("Ya has dado 'me gusta' a esta receta.");
+        if (meGustaRecetaRepository.existsById_UsuarioIdAndId_RecetaId(usuarioId, recetaId)) {
+            throw new MeGustaException("Ya has dado 'me gusta' a esta receta.");
         }
 
+        MeGustaRecetaId id = new MeGustaRecetaId(usuarioId, recetaId);
         MeGustaReceta meGusta = new MeGustaReceta(id, usuario, receta);
         meGustaRecetaRepository.save(meGusta);
     }
@@ -85,12 +86,17 @@ public class RecetaServiceImpl implements RecetaService {
     @Override
     @Transactional
     public void quitarMeGusta(Integer usuarioId, Integer recetaId) {
+        if (!usuarioRepository.existsById(usuarioId)) {
+            throw new UsuarioNoEncontradoException("Usuario no encontrado con id: " + usuarioId);
+        }
+        if (!recetaRepository.existsById(recetaId)) {
+            throw new RecetaNoEncontradaException("Receta no encontrada con id: " + recetaId);
+        }
 
         MeGustaRecetaId id = new MeGustaRecetaId(usuarioId, recetaId);
 
-        // Verificar si el "me gusta" existe antes de intentar eliminarlo
         if (!meGustaRecetaRepository.existsById(id)) {
-            throw new IllegalArgumentException("No has dado 'me gusta' a esta receta.");
+            throw new MeGustaException("No has dado 'me gusta' a esta receta.");
         }
 
         meGustaRecetaRepository.deleteById(id);

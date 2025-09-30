@@ -4,6 +4,8 @@ import java.util.Set;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.recetas.backend.domain.entity.Comentario;
 import com.recetas.backend.domain.entity.Receta;
+import com.recetas.backend.domain.entity.Usuario;
 import com.recetas.backend.service.RecetaService;
 
 /**
@@ -33,47 +36,31 @@ public class RecetaController {
     /**
      * Permite a un usuario dar "me gusta" a una receta.
      *
-     * @param recetaId  El ID de la receta a la que se da "me gusta".
-     * @param usuarioId El ID del usuario que da "me gusta".
+     * @param recetaId    El ID de la receta a la que se da "me gusta".
+     * @param userDetails El ID del usuario que da "me gusta".
      * @return ResponseEntity indicando el resultado de la operación.
      */
-    @PostMapping("/{recetaId}/like/{usuarioId}")
-    public ResponseEntity<Void> darMeGusta(@PathVariable Integer recetaId, @PathVariable Integer usuarioId) {
-        try {
-            recetaService.darMeGusta(usuarioId, recetaId);
-            return ResponseEntity.ok().build(); // Éxito, sin contenido de respuesta
-        } catch (IllegalArgumentException e) {
-            // Manejar errores específicos como usuario o receta no encontrados, ya dio me
-            // gusta, etc.
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build(); // O un mensaje de error más
-                                                                          // descriptivo
-        } catch (Exception e) {
-            // Manejar otros errores inesperados
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    @PostMapping("/{recetaId}/like")
+    public ResponseEntity<Void> darMeGusta(@PathVariable Integer recetaId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Usuario usuario = (Usuario) userDetails;
+        recetaService.darMeGusta(usuario.getId(), recetaId);
+        return ResponseEntity.ok().build();
     }
 
     /**
      * Permite a un usuario quitar el "me gusta" de una receta.
      *
-     * @param recetaId  El ID de la receta a la que se quita el "me gusta".
-     * @param usuarioId El ID del usuario que quita el "me gusta".
+     * @param recetaId    El ID de la receta a la que se quita el "me gusta".
+     * @param userDetails El ID del usuario que quita el "me gusta".
      * @return ResponseEntity indicando el resultado de la operación.
      */
-    @DeleteMapping("/{recetaId}/unlike/{usuarioId}")
-    public ResponseEntity<Void> quitarMeGusta(@PathVariable Integer recetaId, @PathVariable Integer usuarioId) {
-        try {
-            recetaService.quitarMeGusta(usuarioId, recetaId);
-            return ResponseEntity.ok().build(); // Éxito, sin contenido de respuesta
-        } catch (IllegalArgumentException e) {
-            // Manejar errores específicos como usuario o receta no encontrados, no dio me
-            // gusta, etc.
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build(); // O un mensaje de error más
-                                                                          // descriptivo
-        } catch (Exception e) {
-            // Manejar otros errores inesperados
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    @DeleteMapping("/{recetaId}/like")
+    public ResponseEntity<Void> quitarMeGusta(@PathVariable Integer recetaId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Usuario usuario = (Usuario) userDetails;
+        recetaService.quitarMeGusta(usuario.getId(), recetaId);
+        return ResponseEntity.ok().build();
     }
 
     /**
@@ -85,34 +72,13 @@ public class RecetaController {
      */
     @PostMapping("/{recetaId}/comments")
     public ResponseEntity<Comentario> agregarComentario(@PathVariable Integer recetaId,
-            @RequestBody Comentario comentario) {
-        try {
-            // Asignar la receta al comentario
-            Receta receta = recetaService.findById(recetaId);
-            if (receta == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null); // Receta no encontrada
-            }
-            comentario.setReceta(receta);
-
-            // Asignar el usuario al comentario (esto debería obtenerse del contexto de
-            // seguridad)
-            // Por ahora, se asume que el comentario ya tiene el usuario asignado o se puede
-            // obtener de alguna manera.
-            // En una implementación real, se usaría Spring Security para obtener el usuario
-            // autenticado.
-            // Ejemplo: Usuario usuarioAutenticado =
-            // userService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
-            // comentario.setUsuario(usuarioAutenticado);
-
-            Comentario comentarioGuardado = recetaService.agregarComentario(comentario);
-            return ResponseEntity.status(HttpStatus.CREATED).body(comentarioGuardado);
-        } catch (IllegalArgumentException e) {
-            // Manejar errores específicos como usuario o receta no encontrados, etc.
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null); // O un mensaje de error más descriptivo
-        } catch (Exception e) {
-            // Manejar otros errores inesperados
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
+            @RequestBody Comentario comentario, @AuthenticationPrincipal UserDetails userDetails) {
+        Usuario usuario = (Usuario) userDetails;
+        Receta receta = recetaService.findById(recetaId);
+        comentario.setReceta(receta);
+        comentario.setUsuario(usuario);
+        Comentario comentarioGuardado = recetaService.agregarComentario(comentario);
+        return ResponseEntity.status(HttpStatus.CREATED).body(comentarioGuardado);
     }
 
     /**
@@ -123,16 +89,8 @@ public class RecetaController {
      */
     @GetMapping("/{recetaId}/comments")
     public ResponseEntity<Set<Comentario>> obtenerComentariosDeReceta(@PathVariable Integer recetaId) {
-        try {
-            Set<Comentario> comentarios = recetaService.obtenerComentariosDeReceta(recetaId);
-            return ResponseEntity.ok(comentarios);
-        } catch (IllegalArgumentException e) {
-            // Manejar error si la receta no se encuentra
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        } catch (Exception e) {
-            // Manejar otros errores inesperados
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
+        Set<Comentario> comentarios = recetaService.obtenerComentariosDeReceta(recetaId);
+        return ResponseEntity.ok(comentarios);
     }
 
     // Otros endpoints relacionados con recetas (CRUD, etc.) irían aquí.
