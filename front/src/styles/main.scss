@@ -20,8 +20,8 @@ body {
   color: vars.$text-color;
   background-color: vars.$background-color;
   line-height: 1.6;
-  padding-top: 50px;
-  margin-bottom: 50px;
+  padding-top: 50px; /* Re-added to accommodate fixed navbar */
+  margin-bottom: 50px; /* Re-added to accommodate fixed footer */
 }
 
 a {
@@ -44,8 +44,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 main {
-  padding: vars.$spacing-lg;
-  min-height: calc(100vh - 120px); // Ajustar según la altura del header y footer
+  padding: 0; /* Remove padding to ensure it fills the space */
+  min-height: calc(100vh - 120px); /* Adjust according to header and footer height */
 }
 
 // 3. Estilos para componentes comunes (ej. botones)

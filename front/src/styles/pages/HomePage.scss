@@ -1,0 +1,46 @@
+.homepage-dashboard-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Ensure it takes at least full viewport height */
+    margin: 0; /* Remove default margin */
+    padding: 0; /* Remove default padding */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+
+    .search-container {
+        background-color: #f0e6d2; // Un color base claro
+        padding: 1rem 0; /* Adjust padding to reduce vertical space, remove horizontal padding if not needed */
+        /* Removed horizontal padding to ensure it spans full width without extra space */
+        /* Aquí estilizas tu barra de búsqueda */
+    }
+
+    .content-grid {
+        flex-grow: 1; /* Make the grid take up the available space */
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 10px; /* Space between blocks */
+        padding: 0; /* Remove padding to ensure it fills the space */
+
+        /* Styles for each block to match your image */
+        .grid-item-1 {
+            background-color: #a17c38; /* Marrón dorado */
+        }
+        .grid-item-2 {
+            background-color: #b0a89e; /* Grisáceo */
+        }
+        .grid-item-3 {
+            background-color: #b0a89e; /* Grisáceo */
+        }
+        .grid-item-4 {
+            background-color: #6b4f2c; /* Marrón oscuro */
+        }
+    }
+}
+
+/* For smaller screens, you might want blocks to stack */
+@media (max-width: 768px) {
+    .content-grid {
+        grid-template-columns: 1fr; /* Single column */
+        grid-template-rows: auto; /* Rows adjust to content */
+    }
+}
