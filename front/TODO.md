@@ -4,15 +4,15 @@ Este archivo contiene todas las tareas necesarias para desarrollar el frontend d
 
 ## Fase 1: Configuración y Autenticación
 
-- [ ] Instalar dependencias (`react-router-dom`, `sass`).
-- [ ] Configurar la estructura de carpetas según el `README.md`.
-- [ ] Crear la página `LoginPage` con su formulario.
-- [ ] Crear la página `SignupPage` con su formulario.
-- [ ] Implementar el `AuthContext` para gestionar el estado de autenticación.
-- [ ] Implementar el `authService` para las peticiones de login y registro.
-- [ ] Configurar el enrutador principal en `App.jsx`.
-- [ ] Implementar rutas protegidas para usuarios autenticados.
-- [ ] Crear componentes `Navbar` y `Footer`.
+- [x] Instalar dependencias (`react-router-dom`, `sass`).
+- [x] Configurar la estructura de carpetas según el `README.md`.
+- [x] Crear la página `LoginPage` con su formulario.
+- [x] Crear la página `SignupPage` con su formulario.
+- [x] Implementar el `AuthContext` para gestionar el estado de autenticación.
+- [x] Implementar el `authService` para las peticiones de login y registro.
+- [x] Configurar el enrutador principal en `App.jsx`.
+- [x] Implementar rutas protegidas para usuarios autenticados.
+- [x] Crear componentes `Navbar` y `Footer`.
 
 ## Fase 2: Visualización de Recetas
 

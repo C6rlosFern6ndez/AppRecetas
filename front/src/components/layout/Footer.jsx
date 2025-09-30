@@ -2,7 +2,7 @@ import React from 'react';
 
 const Footer = () => {
   return (
-    <footer>
+    <footer className="footer">
       <p>&copy; {new Date().getFullYear()} Aplicación de Recetas. Todos los derechos reservados.</p>
     </footer>
   );

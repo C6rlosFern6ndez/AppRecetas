@@ -1,0 +1,50 @@
+@use '../variables' as variables;
+@use '../mixins' as mixins;
+@use 'sass:color';
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  background-color: variables.$white;
+  padding: variables.$spacing-sm variables.$spacing-lg;
+  border-bottom: 1px solid variables.$border-color;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  h1 {
+    margin-bottom: 0;
+    color: variables.$primary-color;
+    font-size: variables.$font-size-large;
+  }
+
+  ul {
+    display: flex;
+    gap: variables.$spacing-md;
+    align-items: center;
+  }
+
+  li {
+    a {
+      color: variables.$text-color;
+      font-weight: variables.$font-weight-normal;
+      &:hover {
+        color: variables.$primary-color;
+        font-weight: variables.$font-weight-bold;
+      }
+    }
+  }
+
+  button {
+    @include mixins.button-styles(variables.$primary-color, variables.$white);
+    padding: variables.$spacing-xs variables.$spacing-sm;
+    font-size: variables.$font-size-small;
+    &:hover {
+      opacity: 1;
+      background-color: color.adjust(variables.$primary-color, $lightness: -10%);
+    }
+  }
+}

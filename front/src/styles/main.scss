@@ -1,6 +1,9 @@
 // 1. Importar variables y mixins
-@import 'variables';
-@import 'mixins';
+@use 'variables' as vars;
+@use 'mixins' as mix;
+@use 'components/navbar';
+@use 'components/footer';
+@use 'sass:color';
 
 // 2. Reseteo básico y estilos globales
 *,
@@ -12,20 +15,22 @@
 }
 
 body {
-  font-family: $font-family-primary;
-  font-size: $font-size-base;
-  color: $text-color;
-  background-color: $background-color;
+  font-family: vars.$font-family-primary;
+  font-size: vars.$font-size-base;
+  color: vars.$text-color;
+  background-color: vars.$background-color;
   line-height: 1.6;
+  padding-top: 50px;
+  margin-bottom: 50px;
 }
 
 a {
-  color: $primary-color;
+  color: vars.$primary-color;
   text-decoration: none;
-  @include transition;
+  @include mix.transition;
 
   &:hover {
-    color: darken($primary-color, 10%);
+    color: color.adjust(vars.$primary-color, $lightness: -10%);
   }
 }
 
@@ -34,36 +39,36 @@ ul {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-weight: $font-weight-bold;
-  margin-bottom: $spacing-md;
+  font-weight: vars.$font-weight-bold;
+  margin-bottom: vars.$spacing-md;
 }
 
 main {
-  padding: $spacing-lg;
+  padding: vars.$spacing-lg;
   min-height: calc(100vh - 120px); // Ajustar según la altura del header y footer
 }
 
 // 3. Estilos para componentes comunes (ej. botones)
 
 .btn {
-  @include button-styles($primary-color, $white);
+  @include mix.button-styles(vars.$primary-color, vars.$white);
 }
 
 .btn-secondary {
-  @include button-styles($secondary-color, $white);
+  @include mix.button-styles(vars.$secondary-color, vars.$white);
 }
 
 // Estilos para formularios
 form {
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
+  gap: vars.$spacing-md;
   max-width: 400px;
   margin: 0 auto;
-  padding: $spacing-lg;
-  background-color: $white;
-  border-radius: $border-radius;
-  border: 1px solid $border-color;
+  padding: vars.$spacing-lg;
+  background-color: vars.$white;
+  border-radius: vars.$border-radius;
+  border: 1px solid vars.$border-color;
 }
 
 form div {
@@ -72,18 +77,18 @@ form div {
 }
 
 form label {
-  margin-bottom: $spacing-sm;
-  font-weight: $font-weight-bold;
+  margin-bottom: vars.$spacing-sm;
+  font-weight: vars.$font-weight-bold;
 }
 
 form input {
-  padding: $spacing-sm;
-  border: 1px solid $border-color;
-  border-radius: $border-radius;
-  font-size: $font-size-base;
+  padding: vars.$spacing-sm;
+  border: 1px solid vars.$border-color;
+  border-radius: vars.$border-radius;
+  font-size: vars.$font-size-base;
 }
 
 form button {
-  @include button-styles($primary-color, $white);
+  @include mix.button-styles(vars.$primary-color, vars.$white);
   align-self: flex-start;
 }

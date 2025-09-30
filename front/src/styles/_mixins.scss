@@ -1,3 +1,6 @@
+@use 'variables' as variables;
+@use 'sass:color';
+
 // Mixin para centrar elementos con Flexbox
 @mixin flex-center($direction: row, $justify: center, $align: center) {
   display: flex;
@@ -26,14 +29,14 @@
 }
 
 // Mixin para estilos de botones
-@mixin button-styles($bg-color, $text-color) {
-  background-color: $bg-color;
+@mixin button-styles($background-color, $text-color) {
+  background-color: variables.$background-color;
   color: $text-color;
-  padding: $spacing-sm $spacing-md;
+  padding: variables.$spacing-sm variables.$spacing-md;
   border: none;
-  border-radius: $border-radius;
+  border-radius: variables.$border-radius;
   cursor: pointer;
-  font-weight: $font-weight-bold;
+  font-weight: variables.$font-weight-bold;
   @include transition;
 
   &:hover {
@@ -41,7 +44,7 @@
   }
 
   &:disabled {
-    background-color: lighten($bg-color, 20%);
+    background-color: color.adjust(variables.$background-color, $lightness: 20%);
     cursor: not-allowed;
   }
 }

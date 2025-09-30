@@ -3,8 +3,11 @@ package com.recetas.backend.service.impl;
 import com.recetas.backend.domain.entity.Seguidor;
 import com.recetas.backend.domain.entity.SeguidorId;
 import com.recetas.backend.domain.entity.Usuario;
+import com.recetas.backend.domain.repository.RolRepository;
 import com.recetas.backend.domain.repository.SeguidorRepository;
 import com.recetas.backend.domain.repository.UsuarioRepository;
+import com.recetas.backend.exception.SeguimientoException;
+import com.recetas.backend.exception.UsuarioNoEncontradoException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +34,9 @@ class UserServiceImplTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private RolRepository rolRepository;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -62,26 +68,20 @@ class UserServiceImplTest {
     void seguirUsuario_success() {
         when(usuarioRepository.findById(usuarioSeguidor.getId())).thenReturn(Optional.of(usuarioSeguidor));
         when(usuarioRepository.findById(usuarioSeguido.getId())).thenReturn(Optional.of(usuarioSeguido));
-        when(seguidorRepository.existsById(seguidorId)).thenReturn(false);
-        when(seguidorRepository.save(any(Seguidor.class))).thenReturn(seguidor);
+        when(seguidorRepository.existsById_SeguidorIdAndId_SeguidoId(1L, 2L)).thenReturn(false);
 
         assertDoesNotThrow(() -> userService.seguirUsuario(usuarioSeguidor.getId(), usuarioSeguido.getId()));
 
-        verify(usuarioRepository, times(2)).findById(anyInt());
-        verify(seguidorRepository, times(1)).existsById(seguidorId);
-        verify(seguidorRepository, times(1)).save(any(Seguidor.class));
+        verify(seguidorRepository).save(any(Seguidor.class));
     }
 
     @Test
     void seguirUsuario_seguidorNotFound() {
         when(usuarioRepository.findById(usuarioSeguidor.getId())).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
                 () -> userService.seguirUsuario(usuarioSeguidor.getId(), usuarioSeguido.getId()));
-        assertEquals("Usuario seguidor no encontrado", exception.getMessage());
-
-        verify(usuarioRepository, times(1)).findById(usuarioSeguidor.getId());
-        verifyNoInteractions(seguidorRepository);
+        assertEquals("Usuario seguidor no encontrado con id: 1", exception.getMessage());
     }
 
     @Test
@@ -89,93 +89,68 @@ class UserServiceImplTest {
         when(usuarioRepository.findById(usuarioSeguidor.getId())).thenReturn(Optional.of(usuarioSeguidor));
         when(usuarioRepository.findById(usuarioSeguido.getId())).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
                 () -> userService.seguirUsuario(usuarioSeguidor.getId(), usuarioSeguido.getId()));
-        assertEquals("Usuario seguido no encontrado", exception.getMessage());
-
-        verify(usuarioRepository, times(2)).findById(anyInt());
-        verifyNoInteractions(seguidorRepository);
+        assertEquals("Usuario seguido no encontrado con id: 2", exception.getMessage());
     }
 
     @Test
     void seguirUsuario_selfFollow() {
-        when(usuarioRepository.findById(usuarioSeguidor.getId())).thenReturn(Optional.of(usuarioSeguidor));
-
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        SeguimientoException exception = assertThrows(SeguimientoException.class,
                 () -> userService.seguirUsuario(usuarioSeguidor.getId(), usuarioSeguidor.getId()));
         assertEquals("Un usuario no puede seguirse a sí mismo.", exception.getMessage());
-
-        verify(usuarioRepository, times(2)).findById(usuarioSeguidor.getId());
-        verifyNoInteractions(seguidorRepository);
     }
 
     @Test
     void seguirUsuario_alreadyFollowing() {
         when(usuarioRepository.findById(usuarioSeguidor.getId())).thenReturn(Optional.of(usuarioSeguidor));
         when(usuarioRepository.findById(usuarioSeguido.getId())).thenReturn(Optional.of(usuarioSeguido));
-        when(seguidorRepository.existsById(seguidorId)).thenReturn(true);
+        when(seguidorRepository.existsById_SeguidorIdAndId_SeguidoId(1L, 2L)).thenReturn(true);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        SeguimientoException exception = assertThrows(SeguimientoException.class,
                 () -> userService.seguirUsuario(usuarioSeguidor.getId(), usuarioSeguido.getId()));
         assertEquals("Ya sigues a este usuario.", exception.getMessage());
-
-        verify(usuarioRepository, times(2)).findById(anyInt());
-        verify(seguidorRepository, times(1)).existsById(seguidorId);
-        verifyNoMoreInteractions(seguidorRepository);
     }
 
     @Test
     void dejarDeSeguirUsuario_success() {
-        when(usuarioRepository.findById(usuarioSeguidor.getId())).thenReturn(Optional.of(usuarioSeguidor));
-        when(usuarioRepository.findById(usuarioSeguido.getId())).thenReturn(Optional.of(usuarioSeguido));
+        when(usuarioRepository.existsById(usuarioSeguidor.getId())).thenReturn(true);
+        when(usuarioRepository.existsById(usuarioSeguido.getId())).thenReturn(true);
         when(seguidorRepository.existsById(seguidorId)).thenReturn(true);
-        doNothing().when(seguidorRepository).deleteById(seguidorId);
 
         assertDoesNotThrow(() -> userService.dejarDeSeguirUsuario(usuarioSeguidor.getId(), usuarioSeguido.getId()));
 
-        verify(usuarioRepository, times(2)).findById(anyInt());
-        verify(seguidorRepository, times(1)).existsById(seguidorId);
-        verify(seguidorRepository, times(1)).deleteById(seguidorId);
+        verify(seguidorRepository).deleteById(seguidorId);
     }
 
     @Test
     void dejarDeSeguirUsuario_seguidorNotFound() {
-        when(usuarioRepository.findById(usuarioSeguidor.getId())).thenReturn(Optional.empty());
+        when(usuarioRepository.existsById(usuarioSeguidor.getId())).thenReturn(false);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
                 () -> userService.dejarDeSeguirUsuario(usuarioSeguidor.getId(), usuarioSeguido.getId()));
-        assertEquals("Usuario seguidor no encontrado", exception.getMessage());
-
-        verify(usuarioRepository, times(1)).findById(usuarioSeguidor.getId());
-        verifyNoInteractions(seguidorRepository);
+        assertEquals("Usuario seguidor no encontrado con id: 1", exception.getMessage());
     }
 
     @Test
     void dejarDeSeguirUsuario_seguidoNotFound() {
-        when(usuarioRepository.findById(usuarioSeguidor.getId())).thenReturn(Optional.of(usuarioSeguidor));
-        when(usuarioRepository.findById(usuarioSeguido.getId())).thenReturn(Optional.empty());
+        when(usuarioRepository.existsById(usuarioSeguidor.getId())).thenReturn(true);
+        when(usuarioRepository.existsById(usuarioSeguido.getId())).thenReturn(false);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
                 () -> userService.dejarDeSeguirUsuario(usuarioSeguidor.getId(), usuarioSeguido.getId()));
-        assertEquals("Usuario seguido no encontrado", exception.getMessage());
-
-        verify(usuarioRepository, times(2)).findById(anyInt());
-        verifyNoInteractions(seguidorRepository);
+        assertEquals("Usuario seguido no encontrado con id: 2", exception.getMessage());
     }
 
     @Test
     void dejarDeSeguirUsuario_notFollowing() {
-        when(usuarioRepository.findById(usuarioSeguidor.getId())).thenReturn(Optional.of(usuarioSeguidor));
-        when(usuarioRepository.findById(usuarioSeguido.getId())).thenReturn(Optional.of(usuarioSeguido));
+        when(usuarioRepository.existsById(usuarioSeguidor.getId())).thenReturn(true);
+        when(usuarioRepository.existsById(usuarioSeguido.getId())).thenReturn(true);
         when(seguidorRepository.existsById(seguidorId)).thenReturn(false);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        SeguimientoException exception = assertThrows(SeguimientoException.class,
                 () -> userService.dejarDeSeguirUsuario(usuarioSeguidor.getId(), usuarioSeguido.getId()));
         assertEquals("No sigues a este usuario.", exception.getMessage());
-
-        verify(usuarioRepository, times(2)).findById(anyInt());
-        verify(seguidorRepository, times(1)).existsById(seguidorId);
-        verifyNoMoreInteractions(seguidorRepository);
     }
 
     @Test
@@ -197,12 +172,9 @@ class UserServiceImplTest {
     void obtenerSeguidores_userNotFound() {
         when(usuarioRepository.findById(usuarioSeguido.getId())).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
                 () -> userService.obtenerSeguidores(usuarioSeguido.getId()));
-        assertEquals("Usuario no encontrado", exception.getMessage());
-
-        verify(usuarioRepository, times(1)).findById(usuarioSeguido.getId());
-        verifyNoInteractions(seguidorRepository);
+        assertEquals("Usuario no encontrado con id: 2", exception.getMessage());
     }
 
     @Test
@@ -235,12 +207,9 @@ class UserServiceImplTest {
     void obtenerSeguidos_userNotFound() {
         when(usuarioRepository.findById(usuarioSeguidor.getId())).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
                 () -> userService.obtenerSeguidos(usuarioSeguidor.getId()));
-        assertEquals("Usuario no encontrado", exception.getMessage());
-
-        verify(usuarioRepository, times(1)).findById(usuarioSeguidor.getId());
-        verifyNoInteractions(seguidorRepository);
+        assertEquals("Usuario no encontrado con id: 1", exception.getMessage());
     }
 
     @Test

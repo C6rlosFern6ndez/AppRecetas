@@ -1,7 +1,13 @@
 package com.recetas.backend.domain.entity;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -29,7 +35,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Usuario {
+public class Usuario implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -74,4 +80,41 @@ public class Usuario {
 
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Notificacion> notificaciones;
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return roles.stream()
+                .map(rol -> new SimpleGrantedAuthority(rol.getNombre()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public String getPassword() {
+        return contrasena;
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
 }

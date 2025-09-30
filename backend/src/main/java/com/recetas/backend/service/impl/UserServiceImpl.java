@@ -13,9 +13,11 @@ import com.recetas.backend.domain.entity.Rol;
 import com.recetas.backend.domain.entity.Seguidor;
 import com.recetas.backend.domain.entity.SeguidorId;
 import com.recetas.backend.domain.entity.Usuario;
-import com.recetas.backend.domain.repository.RolRepository; // Assuming RolRepository is needed for roles
+import com.recetas.backend.domain.repository.RolRepository;
 import com.recetas.backend.domain.repository.SeguidorRepository;
 import com.recetas.backend.domain.repository.UsuarioRepository;
+import com.recetas.backend.exception.SeguimientoException;
+import com.recetas.backend.exception.UsuarioNoEncontradoException;
 import com.recetas.backend.service.UserService;
 
 /**
@@ -106,23 +108,25 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void seguirUsuario(Integer seguidorId, Integer seguidoId) {
-        Usuario seguidor = usuarioRepository.findById(seguidorId)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario seguidor no encontrado"));
-        Usuario seguido = usuarioRepository.findById(seguidoId)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario seguido no encontrado"));
-
-        // Evitar que un usuario se siga a sí mismo
+        // Comprobar que un usuario no puede seguirse a si mismo
         if (seguidorId.equals(seguidoId)) {
-            throw new IllegalArgumentException("Un usuario no puede seguirse a sí mismo.");
+            throw new SeguimientoException("Un usuario no puede seguirse a sí mismo.");
+        }
+        // Comprobar que los usuarios existen
+        Usuario seguidor = usuarioRepository.findById(seguidorId)
+                .orElseThrow(
+                        () -> new UsuarioNoEncontradoException("Usuario seguidor no encontrado con id: " + seguidorId));
+        Usuario seguido = usuarioRepository.findById(seguidoId)
+                .orElseThrow(
+                        () -> new UsuarioNoEncontradoException("Usuario seguido no encontrado con id: " + seguidoId));
+
+        // Comprobar si ya le sigue
+        if (seguidorRepository.existsById_SeguidorIdAndId_SeguidoId(seguidorId.longValue(), seguidoId.longValue())) {
+            throw new SeguimientoException("Ya sigues a este usuario.");
         }
 
         SeguidorId id = new SeguidorId(seguidorId, seguidoId);
         Seguidor relacionSeguidor = new Seguidor(id, seguidor, seguido);
-
-        // Verificar si ya existe la relación para evitar duplicados
-        if (seguidorRepository.existsById(id)) {
-            throw new IllegalArgumentException("Ya sigues a este usuario.");
-        }
 
         seguidorRepository.save(relacionSeguidor);
     }
@@ -136,16 +140,19 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void dejarDeSeguirUsuario(Integer seguidorId, Integer seguidoId) {
-        Usuario seguidor = usuarioRepository.findById(seguidorId)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario seguidor no encontrado"));
-        Usuario seguido = usuarioRepository.findById(seguidoId)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario seguido no encontrado"));
+        // Comprobar que los usuarios existen
+        if (!usuarioRepository.existsById(seguidorId)) {
+            throw new UsuarioNoEncontradoException("Usuario seguidor no encontrado con id: " + seguidorId);
+        }
+        if (!usuarioRepository.existsById(seguidoId)) {
+            throw new UsuarioNoEncontradoException("Usuario seguido no encontrado con id: " + seguidoId);
+        }
 
         SeguidorId id = new SeguidorId(seguidorId, seguidoId);
 
-        // Verificar si la relación existe antes de intentar eliminarla
+        // Comprobar si ya le sigue
         if (!seguidorRepository.existsById(id)) {
-            throw new IllegalArgumentException("No sigues a este usuario.");
+            throw new SeguimientoException("No sigues a este usuario.");
         }
 
         seguidorRepository.deleteById(id);
@@ -161,10 +168,8 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public Set<Usuario> obtenerSeguidores(Integer userId) {
         Usuario usuario = usuarioRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado con id: " + userId));
 
-        // La entidad Usuario tiene un Set<Seguidor> llamado 'seguidores'
-        // que representa a los usuarios que siguen a este usuario.
         Set<Usuario> seguidores = new HashSet<>();
         if (usuario.getSeguidores() != null) {
             for (Seguidor seguidorRelacion : usuario.getSeguidores()) {
@@ -184,10 +189,8 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public Set<Usuario> obtenerSeguidos(Integer userId) {
         Usuario usuario = usuarioRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado con id: " + userId));
 
-        // La entidad Usuario tiene un Set<Seguidor> llamado 'seguidos'
-        // que representa a los usuarios a los que este usuario sigue.
         Set<Usuario> seguidos = new HashSet<>();
         if (usuario.getSeguidos() != null) {
             for (Seguidor seguidorRelacion : usuario.getSeguidos()) {

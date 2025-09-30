@@ -12,7 +12,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav>
+    <nav className="navbar">
       <Link to="/"><h1>Recetas</h1></Link>
       <ul>
         <li><Link to="/">Inicio</Link></li>
@@ -20,7 +20,7 @@ const Navbar = () => {
           <>
             <li><Link to={`/perfil/${user?.id}`}>Mi Perfil</Link></li>
             <li><Link to="/crear-receta">Crear Receta</Link></li>
-            <li><button onClick={handleLogout}>Cerrar Sesión</button></li>
+            <li><button onClick={handleLogout} className="btn btn-secondary">Cerrar Sesión</button></li>
           </>
         ) : (
           <>
