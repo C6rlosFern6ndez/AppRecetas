@@ -9,7 +9,9 @@ import com.recetas.backend.domain.repository.ComentarioRepository;
 import com.recetas.backend.domain.repository.MeGustaRecetaRepository;
 import com.recetas.backend.domain.repository.NotificacionRepository;
 import com.recetas.backend.domain.repository.RecetaRepository;
+import com.recetas.backend.domain.entity.Comentario;
 import com.recetas.backend.domain.repository.UsuarioRepository;
+import com.recetas.backend.exception.ComentarioException;
 import com.recetas.backend.exception.MeGustaException;
 import com.recetas.backend.exception.RecetaNoEncontradaException;
 import com.recetas.backend.exception.UsuarioNoEncontradoException;
@@ -53,6 +55,7 @@ class RecetaServiceImplTest {
     private Receta receta;
     private MeGustaRecetaId meGustaRecetaId;
     private MeGustaReceta meGustaReceta;
+    private Comentario comentario;
 
     @BeforeEach
     void setUp() {
@@ -70,6 +73,12 @@ class RecetaServiceImplTest {
 
         meGustaRecetaId = new MeGustaRecetaId(usuario.getId(), receta.getId());
         meGustaReceta = new MeGustaReceta(meGustaRecetaId, usuario, receta);
+
+        comentario = new Comentario();
+        comentario.setId(1);
+        comentario.setComentario("Test comentario");
+        comentario.setUsuario(usuario);
+        comentario.setReceta(receta);
     }
 
     @Test
@@ -195,5 +204,43 @@ class RecetaServiceImplTest {
         doNothing().when(recetaRepository).deleteById(receta.getId());
         assertDoesNotThrow(() -> recetaService.eliminarReceta(receta.getId()));
         verify(recetaRepository, times(1)).deleteById(receta.getId());
+    }
+
+    @Test
+    void agregarComentario_success() {
+        when(comentarioRepository.save(any(Comentario.class))).thenReturn(comentario);
+
+        Comentario result = recetaService.agregarComentario(comentario);
+
+        assertNotNull(result);
+        assertEquals("Test comentario", result.getComentario());
+        verify(comentarioRepository).save(comentario);
+    }
+
+    @Test
+    void agregarComentario_emptyComment() {
+        comentario.setComentario(" ");
+
+        ComentarioException exception = assertThrows(ComentarioException.class,
+                () -> recetaService.agregarComentario(comentario));
+        assertEquals("El comentario no puede estar vacío.", exception.getMessage());
+    }
+
+    @Test
+    void agregarComentario_nullUser() {
+        comentario.setUsuario(null);
+
+        ComentarioException exception = assertThrows(ComentarioException.class,
+                () -> recetaService.agregarComentario(comentario));
+        assertEquals("El comentario debe estar asociado a un usuario.", exception.getMessage());
+    }
+
+    @Test
+    void agregarComentario_nullReceta() {
+        comentario.setReceta(null);
+
+        ComentarioException exception = assertThrows(ComentarioException.class,
+                () -> recetaService.agregarComentario(comentario));
+        assertEquals("El comentario debe estar asociado a una receta.", exception.getMessage());
     }
 }

@@ -20,6 +20,7 @@ import com.recetas.backend.domain.repository.MeGustaRecetaRepository;
 import com.recetas.backend.domain.repository.NotificacionRepository;
 import com.recetas.backend.domain.repository.RecetaRepository;
 import com.recetas.backend.domain.repository.UsuarioRepository;
+import com.recetas.backend.exception.ComentarioException;
 import com.recetas.backend.exception.MeGustaException;
 import com.recetas.backend.exception.RecetaNoEncontradaException;
 import com.recetas.backend.exception.UsuarioNoEncontradoException;
@@ -194,10 +195,15 @@ public class RecetaServiceImpl implements RecetaService {
     @Override
     @Transactional
     public Comentario agregarComentario(Comentario comentario) {
-        // Validar que el usuario y la receta existen (esto podría hacerse con findById
-        // en UserService y RecetaService)
-        // Por simplicidad, asumimos que los IDs en el comentario son válidos.
-        // En una implementación real, se deberían añadir validaciones explícitas.
+        if (comentario.getComentario() == null || comentario.getComentario().trim().isEmpty()) {
+            throw new ComentarioException("El comentario no puede estar vacío.");
+        }
+        if (comentario.getUsuario() == null) {
+            throw new ComentarioException("El comentario debe estar asociado a un usuario.");
+        }
+        if (comentario.getReceta() == null) {
+            throw new ComentarioException("El comentario debe estar asociado a una receta.");
+        }
         return comentarioRepository.save(comentario);
     }
 
