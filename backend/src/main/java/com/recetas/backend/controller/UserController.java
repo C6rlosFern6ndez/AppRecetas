@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.recetas.backend.domain.entity.Usuario;
+import com.recetas.backend.domain.repository.UsuarioRepository;
+import com.recetas.backend.exception.UsuarioNoEncontradoException;
 import com.recetas.backend.service.UserService;
 
 /**
@@ -23,9 +25,11 @@ import com.recetas.backend.service.UserService;
 public class UserController {
 
     private final UserService userService;
+    private final UsuarioRepository usuarioRepository;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, UsuarioRepository usuarioRepository) {
         this.userService = userService;
+        this.usuarioRepository = usuarioRepository;
     }
 
     /**
@@ -38,7 +42,8 @@ public class UserController {
     @PostMapping("/{seguidoId}/follow")
     public ResponseEntity<Void> seguirUsuario(@PathVariable Integer seguidoId,
             @AuthenticationPrincipal UserDetails userDetails) {
-        Usuario seguidor = (Usuario) userDetails;
+        Usuario seguidor = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
         userService.seguirUsuario(seguidor.getId(), seguidoId);
         return ResponseEntity.ok().build();
     }
@@ -53,7 +58,8 @@ public class UserController {
     @DeleteMapping("/{seguidoId}/unfollow")
     public ResponseEntity<Void> dejarDeSeguirUsuario(@PathVariable Integer seguidoId,
             @AuthenticationPrincipal UserDetails userDetails) {
-        Usuario seguidor = (Usuario) userDetails;
+        Usuario seguidor = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
         userService.dejarDeSeguirUsuario(seguidor.getId(), seguidoId);
         return ResponseEntity.ok().build();
     }

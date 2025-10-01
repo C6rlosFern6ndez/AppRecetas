@@ -21,7 +21,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.recetas.backend.domain.entity.Categoria;
+import com.recetas.backend.domain.entity.Calificacion;
+import com.recetas.backend.domain.repository.CategoriaRepository;
+import com.recetas.backend.exception.CategoriaNoEncontradaException;
+import com.recetas.backend.service.NotificacionService; // Importar NotificacionService
+import java.time.LocalDateTime;
+import java.util.HashSet; // Importar HashSet
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.util.Optional;
+import java.util.Arrays; // Importar Arrays
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -48,6 +60,12 @@ class RecetaServiceImplTest {
     @Mock
     private NotificacionRepository notificacionRepository;
 
+    @Mock
+    private NotificacionService notificacionService; // Mock para NotificacionService
+
+    @Mock
+    private CategoriaRepository categoriaRepository; // Añadido para tests de categoría
+
     @InjectMocks
     private RecetaServiceImpl recetaService;
 
@@ -56,6 +74,7 @@ class RecetaServiceImplTest {
     private MeGustaRecetaId meGustaRecetaId;
     private MeGustaReceta meGustaReceta;
     private Comentario comentario;
+    private Categoria categoria; // Añadido para tests de categoría
 
     @BeforeEach
     void setUp() {
@@ -65,11 +84,16 @@ class RecetaServiceImplTest {
         usuario.setEmail("test@example.com");
         usuario.setContrasena("password");
 
+        categoria = new Categoria();
+        categoria.setId(1);
+        categoria.setNombre("Postres");
+
         receta = new Receta();
         receta.setId(10);
         receta.setTitulo("Test Receta");
         receta.setDescripcion("Una receta de prueba");
         receta.setUsuario(usuario);
+        receta.setCategorias(new HashSet<>()); // Inicializar la colección de categorías
 
         meGustaRecetaId = new MeGustaRecetaId(usuario.getId(), receta.getId());
         meGustaReceta = new MeGustaReceta(meGustaRecetaId, usuario, receta);
@@ -87,10 +111,14 @@ class RecetaServiceImplTest {
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
         when(meGustaRecetaRepository.existsById_UsuarioIdAndId_RecetaId(usuario.getId(), receta.getId()))
                 .thenReturn(false);
+        // Mockear el comportamiento de crearNotificacion
+        when(notificacionService.crearNotificacion(any(Integer.class), any(), any(Integer.class), any()))
+                .thenReturn(null); // O devolver un objeto Notificacion mockeado si es necesario
 
         assertDoesNotThrow(() -> recetaService.darMeGusta(usuario.getId(), receta.getId()));
 
         verify(meGustaRecetaRepository).save(any(MeGustaReceta.class));
+        verify(notificacionService, times(1)).crearNotificacion(any(Integer.class), any(), any(Integer.class), any());
     }
 
     @Test
@@ -174,12 +202,17 @@ class RecetaServiceImplTest {
 
     @Test
     void obtenerTodasLasRecetas_success() {
-        when(recetaRepository.findAll()).thenReturn(java.util.Collections.singletonList(receta));
-        java.util.List<Receta> recetas = recetaService.obtenerTodasLasRecetas();
-        assertNotNull(recetas);
-        assertFalse(recetas.isEmpty());
-        assertEquals(1, recetas.size());
-        verify(recetaRepository, times(1)).findAll();
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Receta> pageRecetas = new PageImpl<>(Arrays.asList(receta), pageable, 1);
+        when(recetaRepository.findAll(pageable)).thenReturn(pageRecetas);
+
+        Page<Receta> resultPage = recetaService.obtenerTodasLasRecetas(pageable);
+
+        assertNotNull(resultPage);
+        assertFalse(resultPage.isEmpty());
+        assertEquals(1, resultPage.getTotalElements());
+        assertEquals(receta.getTitulo(), resultPage.getContent().get(0).getTitulo());
+        verify(recetaRepository, times(1)).findAll(pageable);
     }
 
     @Test
@@ -242,5 +275,135 @@ class RecetaServiceImplTest {
         ComentarioException exception = assertThrows(ComentarioException.class,
                 () -> recetaService.agregarComentario(comentario));
         assertEquals("El comentario debe estar asociado a una receta.", exception.getMessage());
+    }
+
+    @Test
+    void calificarReceta_success_newRating() {
+        when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
+        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
+        when(calificacionRepository.findByUsuarioIdAndRecetaId(usuario.getId(), receta.getId()))
+                .thenReturn(Optional.empty());
+        when(calificacionRepository.save(any(Calificacion.class))).thenAnswer(invocation -> {
+            Calificacion cal = invocation.getArgument(0);
+            cal.setId(1); // Simular ID generado
+            return cal;
+        });
+
+        assertDoesNotThrow(() -> recetaService.calificarReceta(usuario.getId(), receta.getId(), 4));
+
+        verify(calificacionRepository, times(1)).save(any(Calificacion.class));
+    }
+
+    @Test
+    void calificarReceta_success_updateRating() {
+        Calificacion existingCalificacion = new Calificacion(1, 3, LocalDateTime.now(), usuario, receta);
+        when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
+        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
+        when(calificacionRepository.findByUsuarioIdAndRecetaId(usuario.getId(), receta.getId()))
+                .thenReturn(Optional.of(existingCalificacion));
+        when(calificacionRepository.save(any(Calificacion.class))).thenReturn(existingCalificacion);
+
+        assertDoesNotThrow(() -> recetaService.calificarReceta(usuario.getId(), receta.getId(), 5));
+
+        assertEquals(5, existingCalificacion.getPuntuacion());
+        verify(calificacionRepository, times(1)).save(any(Calificacion.class));
+    }
+
+    @Test
+    void calificarReceta_usuarioNotFound() {
+        when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> recetaService.calificarReceta(usuario.getId(), receta.getId(), 4));
+        assertEquals("Usuario no encontrado", exception.getMessage());
+    }
+
+    @Test
+    void calificarReceta_recetaNotFound() {
+        when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
+        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> recetaService.calificarReceta(usuario.getId(), receta.getId(), 4));
+        assertEquals("Receta no encontrada", exception.getMessage());
+    }
+
+    @Test
+    void calificarReceta_invalidPuntuacion() {
+        when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
+        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> recetaService.calificarReceta(usuario.getId(), receta.getId(), 0));
+        assertEquals("La puntuación debe estar entre 1 y 5.", exception.getMessage());
+
+        exception = assertThrows(IllegalArgumentException.class,
+                () -> recetaService.calificarReceta(usuario.getId(), receta.getId(), 6));
+        assertEquals("La puntuación debe estar entre 1 y 5.", exception.getMessage());
+    }
+
+    @Test
+    void agregarCategoria_success() {
+        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
+        when(categoriaRepository.findById(categoria.getId())).thenReturn(Optional.of(categoria));
+        when(recetaRepository.save(any(Receta.class))).thenReturn(receta);
+
+        Receta result = recetaService.agregarCategoria(receta.getId(), categoria.getId());
+
+        assertNotNull(result);
+        assertTrue(result.getCategorias().contains(categoria));
+        verify(recetaRepository, times(1)).save(receta);
+    }
+
+    @Test
+    void agregarCategoria_recetaNotFound() {
+        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.empty());
+
+        RecetaNoEncontradaException exception = assertThrows(RecetaNoEncontradaException.class,
+                () -> recetaService.agregarCategoria(receta.getId(), categoria.getId()));
+        assertEquals("Receta no encontrada con id: " + receta.getId(), exception.getMessage());
+    }
+
+    @Test
+    void agregarCategoria_categoriaNotFound() {
+        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
+        when(categoriaRepository.findById(categoria.getId())).thenReturn(Optional.empty());
+
+        CategoriaNoEncontradaException exception = assertThrows(CategoriaNoEncontradaException.class,
+                () -> recetaService.agregarCategoria(receta.getId(), categoria.getId()));
+        assertEquals("Categoria no encontrada con id: " + categoria.getId(), exception.getMessage());
+    }
+
+    @Test
+    void eliminarCategoria_success() {
+        receta.getCategorias().add(categoria); // Asegurarse de que la categoría existe en la receta
+        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
+        when(categoriaRepository.findById(categoria.getId())).thenReturn(Optional.of(categoria));
+        when(recetaRepository.save(any(Receta.class))).thenReturn(receta);
+
+        Receta result = recetaService.eliminarCategoria(receta.getId(), categoria.getId());
+
+        assertNotNull(result);
+        assertFalse(result.getCategorias().contains(categoria));
+        verify(recetaRepository, times(1)).save(receta);
+    }
+
+    @Test
+    void eliminarCategoria_recetaNotFound() {
+        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.empty());
+
+        RecetaNoEncontradaException exception = assertThrows(RecetaNoEncontradaException.class,
+                () -> recetaService.eliminarCategoria(receta.getId(), categoria.getId()));
+        assertEquals("Receta no encontrada con id: " + receta.getId(), exception.getMessage());
+    }
+
+    @Test
+    void eliminarCategoria_categoriaNotFound() {
+        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
+        when(categoriaRepository.findById(categoria.getId())).thenReturn(Optional.empty());
+
+        CategoriaNoEncontradaException exception = assertThrows(CategoriaNoEncontradaException.class,
+                () -> recetaService.eliminarCategoria(receta.getId(), categoria.getId()));
+        assertEquals("Categoria no encontrada con id: " + categoria.getId(), exception.getMessage());
     }
 }

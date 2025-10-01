@@ -28,6 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>17</java.version>
+		<mariadb.version>3.1.4</mariadb.version> <!-- Versión del driver de MariaDB -->
 	</properties>
 	<dependencies>
 		<dependency>
@@ -111,6 +112,23 @@
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>2.5.0</version>
 		</dependency>
+
+		<!-- Flyway para migraciones de BBDD -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-mysql</artifactId>
+		</dependency>
+
+		<!-- MapStruct para mapeo de DTOs -->
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>1.5.5.Final</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -123,6 +141,11 @@
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
+						</path>
+						<path>
+							<groupId>org.mapstruct</groupId>
+							<artifactId>mapstruct-processor</artifactId>
+							<version>1.5.5.Final</version>
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
@@ -138,6 +161,29 @@
 						</exclude>
 					</excludes>
 				</configuration>
+			</plugin>
+			<!-- Configuración del plugin de Flyway -->
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<version>11.7.2</version> <!-- Asegúrate de que esta versión coincida con la dependencia -->
+				<configuration>
+					<url>jdbc:mariadb://localhost:3336/recetas_db</url>
+					<user>root</user>
+					<password>123456</password>
+					<locations>
+						<location>classpath:db/migration</location>
+					</locations>
+					<baselineOnMigrate>true</baselineOnMigrate>
+					<baselineVersion>0</baselineVersion>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.mariadb.jdbc</groupId>
+						<artifactId>mariadb-java-client</artifactId>
+						<version>${mariadb.version}</version> <!-- Usar la versión definida en las propiedades -->
+					</dependency>
+				</dependencies>
 			</plugin>
 		</plugins>
 	</build>

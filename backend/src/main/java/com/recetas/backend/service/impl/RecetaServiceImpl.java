@@ -1,10 +1,11 @@
 package com.recetas.backend.service.impl;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,10 +22,12 @@ import com.recetas.backend.domain.repository.MeGustaRecetaRepository;
 import com.recetas.backend.domain.repository.RecetaRepository;
 import com.recetas.backend.domain.repository.UsuarioRepository;
 import com.recetas.backend.domain.repository.CategoriaRepository;
+import com.recetas.backend.exception.CategoriaNoEncontradaException;
 import com.recetas.backend.exception.ComentarioException;
 import com.recetas.backend.exception.MeGustaException;
 import com.recetas.backend.exception.RecetaNoEncontradaException;
 import com.recetas.backend.exception.UsuarioNoEncontradoException;
+import com.recetas.backend.domain.model.enums.Dificultad;
 import com.recetas.backend.domain.model.enums.TipoNotificacion;
 import com.recetas.backend.service.NotificacionService;
 import com.recetas.backend.service.RecetaService;
@@ -125,9 +128,16 @@ public class RecetaServiceImpl implements RecetaService {
         return recetaRepository.save(receta);
     }
 
+    /**
+     * Obtiene todas las recetas con paginación y ordenación.
+     *
+     * @param pageable Objeto Pageable para la paginación y ordenación.
+     * @return Una página de recetas.
+     */
     @Override
-    public List<Receta> obtenerTodasLasRecetas() {
-        return recetaRepository.findAll();
+    @Transactional(readOnly = true)
+    public Page<Receta> obtenerTodasLasRecetas(Pageable pageable) {
+        return recetaRepository.findAll(pageable);
     }
 
     @Override
@@ -138,6 +148,25 @@ public class RecetaServiceImpl implements RecetaService {
     @Override
     public void eliminarReceta(Integer id) {
         recetaRepository.deleteById(id);
+    }
+
+    /**
+     * Busca recetas por varios criterios con paginación y ordenación.
+     *
+     * @param titulo               Título de la receta (parcial).
+     * @param ingredienteNombre    Nombre de un ingrediente (parcial).
+     * @param dificultad           Nivel de dificultad.
+     * @param tiempoPreparacionMax Tiempo máximo de preparación.
+     * @param categoriaNombre      Nombre de una categoría (parcial).
+     * @param pageable             Objeto Pageable para la paginación y ordenación.
+     * @return Una página de recetas que coinciden con los criterios.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Receta> buscarRecetas(String titulo, String ingredienteNombre, Dificultad dificultad,
+            Integer tiempoPreparacionMax, String categoriaNombre, Pageable pageable) {
+        return recetaRepository.buscarRecetas(titulo, ingredienteNombre, dificultad, tiempoPreparacionMax,
+                categoriaNombre, pageable);
     }
 
     /**
@@ -231,9 +260,10 @@ public class RecetaServiceImpl implements RecetaService {
     @Transactional
     public Receta agregarCategoria(Integer recetaId, Integer categoriaId) {
         Receta receta = recetaRepository.findById(recetaId)
-                .orElseThrow(() -> new RecetaNoEncontradaException("Receta no encontrada"));
+                .orElseThrow(() -> new RecetaNoEncontradaException("Receta no encontrada con id: " + recetaId));
         Categoria categoria = categoriaRepository.findById(categoriaId)
-                .orElseThrow(() -> new IllegalArgumentException("Categoria no encontrada"));
+                .orElseThrow(
+                        () -> new CategoriaNoEncontradaException("Categoria no encontrada con id: " + categoriaId));
         receta.getCategorias().add(categoria);
         return recetaRepository.save(receta);
     }
@@ -242,9 +272,10 @@ public class RecetaServiceImpl implements RecetaService {
     @Transactional
     public Receta eliminarCategoria(Integer recetaId, Integer categoriaId) {
         Receta receta = recetaRepository.findById(recetaId)
-                .orElseThrow(() -> new RecetaNoEncontradaException("Receta no encontrada"));
+                .orElseThrow(() -> new RecetaNoEncontradaException("Receta no encontrada con id: " + recetaId));
         Categoria categoria = categoriaRepository.findById(categoriaId)
-                .orElseThrow(() -> new IllegalArgumentException("Categoria no encontrada"));
+                .orElseThrow(
+                        () -> new CategoriaNoEncontradaException("Categoria no encontrada con id: " + categoriaId));
         receta.getCategorias().remove(categoria);
         return recetaRepository.save(receta);
     }

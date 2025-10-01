@@ -6,6 +6,7 @@ import com.recetas.backend.domain.entity.Usuario;
 import com.recetas.backend.domain.repository.ComentarioRepository;
 import com.recetas.backend.domain.repository.RecetaRepository;
 import com.recetas.backend.domain.repository.UsuarioRepository;
+import com.recetas.backend.service.NotificacionService; // Importar NotificacionService
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +30,9 @@ class ComentarioServiceImplTest {
 
     @Mock
     private RecetaRepository recetaRepository;
+
+    @Mock
+    private NotificacionService notificacionService; // Mock para NotificacionService
 
     @InjectMocks
     private ComentarioServiceImpl comentarioService;
@@ -63,6 +67,9 @@ class ComentarioServiceImplTest {
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
         when(comentarioRepository.save(any(Comentario.class))).thenReturn(comentario);
+        // Mockear el comportamiento de crearNotificacion
+        when(notificacionService.crearNotificacion(any(Integer.class), any(), any(Integer.class), any()))
+                .thenReturn(null); // O devolver un objeto Notificacion mockeado si es necesario
 
         Comentario createdComentario = comentarioService.crearComentario("Este es un comentario de prueba.",
                 usuario.getId(), receta.getId());

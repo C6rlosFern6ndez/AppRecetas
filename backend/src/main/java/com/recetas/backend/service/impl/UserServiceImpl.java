@@ -17,6 +17,7 @@ import com.recetas.backend.domain.repository.RolRepository;
 import com.recetas.backend.domain.repository.SeguidorRepository;
 import com.recetas.backend.domain.model.enums.TipoNotificacion;
 import com.recetas.backend.domain.repository.UsuarioRepository;
+import com.recetas.backend.exception.EmailAlreadyInUseException;
 import com.recetas.backend.exception.SeguimientoException;
 import com.recetas.backend.exception.UsuarioNoEncontradoException;
 import com.recetas.backend.service.NotificacionService;
@@ -58,7 +59,7 @@ public class UserServiceImpl implements UserService {
     public Usuario registrarUsuario(SignupRequestDto signupRequestDto) {
         // Verificar si el correo electrónico ya está en uso
         if (usuarioRepository.findByEmail(signupRequestDto.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("El correo electrónico ya está en uso.");
+            throw new EmailAlreadyInUseException("El correo electrónico ya está en uso.");
         }
 
         // Crear un nuevo usuario

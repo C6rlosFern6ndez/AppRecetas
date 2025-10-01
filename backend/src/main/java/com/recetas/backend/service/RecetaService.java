@@ -1,13 +1,16 @@
 package com.recetas.backend.service;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import com.recetas.backend.domain.entity.Calificacion;
 import com.recetas.backend.domain.entity.Comentario;
 import com.recetas.backend.domain.entity.Notificacion;
 import com.recetas.backend.domain.entity.Receta;
+import com.recetas.backend.domain.model.enums.Dificultad; // Importar Dificultad
 import com.recetas.backend.domain.model.enums.TipoNotificacion;
 
 /**
@@ -57,9 +60,12 @@ public interface RecetaService {
 
     Receta guardarReceta(Receta receta);
 
-    List<Receta> obtenerTodasLasRecetas();
+    Page<Receta> obtenerTodasLasRecetas(Pageable pageable);
 
     Optional<Receta> obtenerRecetaPorId(Integer id);
+
+    Page<Receta> buscarRecetas(String titulo, String ingredienteNombre, Dificultad dificultad,
+            Integer tiempoPreparacionMax, String categoriaNombre, Pageable pageable);
 
     void eliminarReceta(Integer id);
 

@@ -1,8 +1,9 @@
 package com.recetas.backend.controller;
 
-import java.util.List;
 import java.util.Set;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -14,12 +15,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.recetas.backend.domain.dto.RecetaRequestDto;
 import com.recetas.backend.domain.entity.Comentario;
 import com.recetas.backend.domain.entity.Receta;
 import com.recetas.backend.domain.entity.Usuario;
+import com.recetas.backend.domain.mapper.RecetaMapper;
+import com.recetas.backend.domain.model.enums.Dificultad;
 import com.recetas.backend.domain.repository.UsuarioRepository;
 import com.recetas.backend.exception.UsuarioNoEncontradoException;
 import com.recetas.backend.service.RecetaService;
@@ -34,10 +38,13 @@ public class RecetaController {
 
     private final RecetaService recetaService;
     private final UsuarioRepository usuarioRepository;
+    private final RecetaMapper recetaMapper;
 
-    public RecetaController(RecetaService recetaService, UsuarioRepository usuarioRepository) {
+    public RecetaController(RecetaService recetaService, UsuarioRepository usuarioRepository,
+            RecetaMapper recetaMapper) {
         this.recetaService = recetaService;
         this.usuarioRepository = usuarioRepository;
+        this.recetaMapper = recetaMapper;
     }
 
     /**
@@ -110,14 +117,7 @@ public class RecetaController {
             @AuthenticationPrincipal UserDetails userDetails) {
         Usuario usuario = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
                 .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
-        Receta nuevaReceta = new Receta();
-        // Aquí se mapearía desde el DTO a la entidad.
-        // Por simplicidad, asumimos que el DTO tiene los campos necesarios.
-        nuevaReceta.setTitulo(recetaDto.getTitulo());
-        nuevaReceta.setDescripcion(recetaDto.getDescripcion());
-        nuevaReceta.setTiempoPreparacion(recetaDto.getTiempoPreparacion());
-        nuevaReceta.setDificultad(recetaDto.getDificultad());
-        nuevaReceta.setPorciones(recetaDto.getPorciones());
+        Receta nuevaReceta = recetaMapper.toEntity(recetaDto);
         nuevaReceta.setUsuario(usuario);
         Receta recetaGuardada = recetaService.guardarReceta(nuevaReceta);
         return ResponseEntity.status(HttpStatus.CREATED).body(recetaGuardada);
@@ -130,9 +130,40 @@ public class RecetaController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Obtiene todas las recetas con paginación y ordenación.
+     *
+     * @param pageable Objeto Pageable para la paginación y ordenación.
+     * @return ResponseEntity con una página de recetas.
+     */
     @GetMapping
-    public ResponseEntity<List<Receta>> obtenerTodasLasRecetas() {
-        List<Receta> recetas = recetaService.obtenerTodasLasRecetas();
+    public ResponseEntity<Page<Receta>> obtenerTodasLasRecetas(Pageable pageable) {
+        Page<Receta> recetas = recetaService.obtenerTodasLasRecetas(pageable);
+        return ResponseEntity.ok(recetas);
+    }
+
+    /**
+     * Busca recetas por varios criterios con paginación y ordenación.
+     *
+     * @param titulo               Título de la receta (parcial).
+     * @param ingredienteNombre    Nombre de un ingrediente (parcial).
+     * @param dificultad           Nivel de dificultad.
+     * @param tiempoPreparacionMax Tiempo máximo de preparación.
+     * @param categoriaNombre      Nombre de una categoría (parcial).
+     * @param pageable             Objeto Pageable para la paginación y ordenación.
+     * @return ResponseEntity con una página de recetas que coinciden con los
+     *         criterios.
+     */
+    @GetMapping("/search")
+    public ResponseEntity<Page<Receta>> buscarRecetas(
+            @RequestParam(required = false) String titulo,
+            @RequestParam(required = false) String ingredienteNombre,
+            @RequestParam(required = false) Dificultad dificultad,
+            @RequestParam(required = false) Integer tiempoPreparacionMax,
+            @RequestParam(required = false) String categoriaNombre,
+            Pageable pageable) {
+        Page<Receta> recetas = recetaService.buscarRecetas(titulo, ingredienteNombre, dificultad,
+                tiempoPreparacionMax, categoriaNombre, pageable);
         return ResponseEntity.ok(recetas);
     }
 
@@ -146,9 +177,7 @@ public class RecetaController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         // Mapear campos del DTO a la entidad existente
-        recetaExistente.setTitulo(recetaDto.getTitulo());
-        recetaExistente.setDescripcion(recetaDto.getDescripcion());
-        // ... otros campos
+        recetaMapper.updateEntityFromDto(recetaDto, recetaExistente);
         Receta recetaActualizada = recetaService.guardarReceta(recetaExistente);
         return ResponseEntity.ok(recetaActualizada);
     }

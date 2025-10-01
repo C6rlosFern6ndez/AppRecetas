@@ -7,6 +7,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,22 +43,12 @@ public class AuthController {
      * @return ResponseEntity con el usuario creado o un mensaje de error.
      */
     @PostMapping("/signup")
-    public ResponseEntity<?> registrarUsuario(@RequestBody SignupRequestDto signupRequestDto) {
-        try {
-            Usuario usuario = userService.registrarUsuario(signupRequestDto);
-            // En una aplicación real, aquí podrías devolver un DTO más ligero o un mensaje
-            // de éxito.
-            // Por ahora, devolvemos el usuario completo para verificación.
-            return new ResponseEntity<>(usuario, HttpStatus.CREATED);
-        } catch (IllegalArgumentException e) {
-            // Captura excepciones específicas lanzadas por el servicio (ej. usuario/email
-            // ya existe)
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            // Captura cualquier otra excepción inesperada
-            return new ResponseEntity<>("Error interno del servidor: " + e.getMessage(),
-                    HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    public ResponseEntity<?> registrarUsuario(@Valid @RequestBody SignupRequestDto signupRequestDto) {
+        Usuario usuario = userService.registrarUsuario(signupRequestDto);
+        // En una aplicación real, aquí podrías devolver un DTO más ligero o un mensaje
+        // de éxito.
+        // Por ahora, devolvemos el usuario completo para verificación.
+        return new ResponseEntity<>(usuario, HttpStatus.CREATED);
     }
 
     /**
@@ -67,7 +58,7 @@ public class AuthController {
      * @return ResponseEntity con el token JWT o un mensaje de error.
      */
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDto> autenticarUsuario(@RequestBody LoginRequestDto loginRequestDto) {
+    public ResponseEntity<LoginResponseDto> autenticarUsuario(@Valid @RequestBody LoginRequestDto loginRequestDto) {
         String usernameOrEmail = loginRequestDto.getNombreUsuarioOrEmail();
         String password = loginRequestDto.getContrasena();
 

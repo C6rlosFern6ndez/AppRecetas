@@ -6,8 +6,12 @@ import com.recetas.backend.domain.entity.Usuario;
 import com.recetas.backend.domain.repository.RolRepository;
 import com.recetas.backend.domain.repository.SeguidorRepository;
 import com.recetas.backend.domain.repository.UsuarioRepository;
+import com.recetas.backend.domain.dto.SignupRequestDto;
+import com.recetas.backend.domain.model.enums.TipoNotificacion;
+import com.recetas.backend.exception.EmailAlreadyInUseException;
 import com.recetas.backend.exception.SeguimientoException;
 import com.recetas.backend.exception.UsuarioNoEncontradoException;
+import com.recetas.backend.service.NotificacionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +41,9 @@ class UserServiceImplTest {
 
     @Mock
     private RolRepository rolRepository;
+
+    @Mock
+    private NotificacionService notificacionService; // Mock para NotificacionService
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -68,11 +75,19 @@ class UserServiceImplTest {
     void seguirUsuario_success() {
         when(usuarioRepository.findById(usuarioSeguidor.getId())).thenReturn(Optional.of(usuarioSeguidor));
         when(usuarioRepository.findById(usuarioSeguido.getId())).thenReturn(Optional.of(usuarioSeguido));
-        when(seguidorRepository.existsById_SeguidorIdAndId_SeguidoId(1L, 2L)).thenReturn(false);
+        when(seguidorRepository.existsById_SeguidorIdAndId_SeguidoId(usuarioSeguidor.getId().longValue(),
+                usuarioSeguido.getId().longValue()))
+                .thenReturn(false);
+        // Mockear el comportamiento de crearNotificacion
+        when(notificacionService.crearNotificacion(any(Integer.class), any(TipoNotificacion.class), any(Integer.class),
+                any()))
+                .thenReturn(null); // O devolver un objeto Notificacion mockeado si es necesario
 
         assertDoesNotThrow(() -> userService.seguirUsuario(usuarioSeguidor.getId(), usuarioSeguido.getId()));
 
         verify(seguidorRepository).save(any(Seguidor.class));
+        verify(notificacionService, times(1)).crearNotificacion(any(Integer.class), eq(TipoNotificacion.NUEVO_SEGUIDOR),
+                any(Integer.class), any());
     }
 
     @Test
@@ -105,7 +120,9 @@ class UserServiceImplTest {
     void seguirUsuario_alreadyFollowing() {
         when(usuarioRepository.findById(usuarioSeguidor.getId())).thenReturn(Optional.of(usuarioSeguidor));
         when(usuarioRepository.findById(usuarioSeguido.getId())).thenReturn(Optional.of(usuarioSeguido));
-        when(seguidorRepository.existsById_SeguidorIdAndId_SeguidoId(1L, 2L)).thenReturn(true);
+        when(seguidorRepository.existsById_SeguidorIdAndId_SeguidoId(usuarioSeguidor.getId().longValue(),
+                usuarioSeguido.getId().longValue()))
+                .thenReturn(true);
 
         SeguimientoException exception = assertThrows(SeguimientoException.class,
                 () -> userService.seguirUsuario(usuarioSeguidor.getId(), usuarioSeguido.getId()));
@@ -272,5 +289,20 @@ class UserServiceImplTest {
 
         assertFalse(foundUser.isPresent());
         verify(usuarioRepository, times(1)).findByEmail(anyString());
+    }
+
+    @Test
+    void registrarUsuario_emailAlreadyInUse() {
+        SignupRequestDto signupRequestDto = new SignupRequestDto();
+        signupRequestDto.setNombreUsuario("testuser");
+        signupRequestDto.setEmail("test@example.com");
+        signupRequestDto.setContrasena("password");
+
+        when(usuarioRepository.findByEmail(signupRequestDto.getEmail())).thenReturn(Optional.of(new Usuario()));
+
+        EmailAlreadyInUseException exception = assertThrows(EmailAlreadyInUseException.class,
+                () -> userService.registrarUsuario(signupRequestDto));
+        assertEquals("El correo electrónico ya está en uso.", exception.getMessage());
+        verify(usuarioRepository, never()).save(any(Usuario.class));
     }
 }

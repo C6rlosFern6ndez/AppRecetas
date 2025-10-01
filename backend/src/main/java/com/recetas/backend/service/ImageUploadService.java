@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.core.io.ByteArrayResource; // Importar ByteArrayResource
 
 /**
  * Servicio para la carga de imágenes utilizando la API de imgbb.
@@ -31,19 +32,37 @@ public class ImageUploadService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * Sube una imagen a imgbb.
+     * Sube una imagen a imgbb con un nombre de archivo personalizado.
      *
-     * @param imageFile El archivo de imagen a subir.
+     * @param imageFile    El archivo de imagen a subir.
+     * @param categoryName El nombre de la categoría a la que pertenece la receta.
+     * @param recipeTitle  El título de la receta.
      * @return La URL de la imagen subida, o null si la subida falla.
      * @throws IOException Si ocurre un error al procesar el archivo.
      */
-    public String uploadImage(MultipartFile imageFile) throws IOException {
+    public String uploadImage(MultipartFile imageFile, String categoryName, String recipeTitle) throws IOException {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
+        // Extraer la extensión del archivo original
+        String originalFilename = imageFile.getOriginalFilename();
+        String fileExtension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+
+        // Construir el nuevo nombre del archivo
+        String newFilename = categoryName.replaceAll("\\s+", "") + "-" + recipeTitle.replaceAll("\\s+", "")
+                + fileExtension;
+
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("key", imgbbApiKey);
-        body.add("image", new ByteArrayResource(imageFile.getBytes(), imageFile.getOriginalFilename()));
+        body.add("image", new ByteArrayResource(imageFile.getBytes()) {
+            @Override
+            public String getFilename() {
+                return newFilename;
+            }
+        });
         // Puedes añadir otros parámetros como 'expiration' si lo necesitas.
         // body.add("expiration", 600); // Ejemplo: expira en 600 segundos (10 minutos)
 
@@ -60,6 +79,7 @@ public class ImageUploadService {
                 JsonNode rootNode = objectMapper.readTree(response.getBody());
                 JsonNode dataNode = rootNode.path("data");
                 if (dataNode.has("url")) {
+                    System.out.println("Imagen subida correctamente. URL: " + dataNode.path("url").asText());
                     return dataNode.path("url").asText();
                 } else {
                     // Manejar el caso donde la respuesta no contiene la URL esperada
@@ -75,21 +95,6 @@ public class ImageUploadService {
             System.err.println("Excepción al subir la imagen a imgbb: " + e.getMessage());
             e.printStackTrace();
             return null;
-        }
-    }
-
-    // Clase interna para envolver los bytes del archivo con el nombre del archivo
-    private static class ByteArrayResource extends org.springframework.core.io.ByteArrayResource {
-        private final String filename;
-
-        public ByteArrayResource(byte[] content, String filename) {
-            super(content);
-            this.filename = filename;
-        }
-
-        @Override
-        public String getFilename() {
-            return this.filename;
         }
     }
 }
