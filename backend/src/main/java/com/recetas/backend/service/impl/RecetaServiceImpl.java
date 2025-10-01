@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.recetas.backend.domain.entity.Calificacion;
+import com.recetas.backend.domain.entity.Categoria;
 import com.recetas.backend.domain.entity.Comentario;
 import com.recetas.backend.domain.entity.MeGustaReceta;
 import com.recetas.backend.domain.entity.MeGustaRecetaId;
@@ -17,15 +18,15 @@ import com.recetas.backend.domain.entity.Usuario;
 import com.recetas.backend.domain.repository.CalificacionRepository;
 import com.recetas.backend.domain.repository.ComentarioRepository;
 import com.recetas.backend.domain.repository.MeGustaRecetaRepository;
-import com.recetas.backend.domain.repository.NotificacionRepository;
 import com.recetas.backend.domain.repository.RecetaRepository;
 import com.recetas.backend.domain.repository.UsuarioRepository;
+import com.recetas.backend.domain.repository.CategoriaRepository;
 import com.recetas.backend.exception.ComentarioException;
 import com.recetas.backend.exception.MeGustaException;
 import com.recetas.backend.exception.RecetaNoEncontradaException;
 import com.recetas.backend.exception.UsuarioNoEncontradoException;
-import com.recetas.backend.domain.entity.Notificacion;
 import com.recetas.backend.domain.model.enums.TipoNotificacion;
+import com.recetas.backend.service.NotificacionService;
 import com.recetas.backend.service.RecetaService;
 
 /**
@@ -39,20 +40,20 @@ public class RecetaServiceImpl implements RecetaService {
     private final MeGustaRecetaRepository meGustaRecetaRepository;
     private final ComentarioRepository comentarioRepository;
     private final CalificacionRepository calificacionRepository;
-    private final NotificacionRepository notificacionRepository; // Added NotificacionRepository
+    private final NotificacionService notificacionService;
+    private final CategoriaRepository categoriaRepository;
 
     public RecetaServiceImpl(RecetaRepository recetaRepository, UsuarioRepository usuarioRepository,
             MeGustaRecetaRepository meGustaRecetaRepository, ComentarioRepository comentarioRepository,
-            CalificacionRepository calificacionRepository, NotificacionRepository notificacionRepository) { // Added
-                                                                                                            // NotificacionRepository
-                                                                                                            // to
-                                                                                                            // constructor
+            CalificacionRepository calificacionRepository, NotificacionService notificacionService,
+            CategoriaRepository categoriaRepository) {
         this.recetaRepository = recetaRepository;
         this.usuarioRepository = usuarioRepository;
         this.meGustaRecetaRepository = meGustaRecetaRepository;
         this.comentarioRepository = comentarioRepository;
         this.calificacionRepository = calificacionRepository;
-        this.notificacionRepository = notificacionRepository; // Initialize NotificacionRepository
+        this.notificacionService = notificacionService;
+        this.categoriaRepository = categoriaRepository;
     }
 
     /**
@@ -76,6 +77,10 @@ public class RecetaServiceImpl implements RecetaService {
         MeGustaRecetaId id = new MeGustaRecetaId(usuarioId, recetaId);
         MeGustaReceta meGusta = new MeGustaReceta(id, usuario, receta);
         meGustaRecetaRepository.save(meGusta);
+
+        // Crear notificacion
+        notificacionService.crearNotificacion(receta.getUsuario().getId(), TipoNotificacion.ME_GUSTA_RECETA, usuarioId,
+                recetaId.longValue());
     }
 
     /**
@@ -223,9 +228,24 @@ public class RecetaServiceImpl implements RecetaService {
     }
 
     @Override
-    public void crearNotificacion(Integer destinatarioId, TipoNotificacion tipo, Integer emisorId, Integer recetaId,
-            String mensaje) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'crearNotificacion'");
+    @Transactional
+    public Receta agregarCategoria(Integer recetaId, Integer categoriaId) {
+        Receta receta = recetaRepository.findById(recetaId)
+                .orElseThrow(() -> new RecetaNoEncontradaException("Receta no encontrada"));
+        Categoria categoria = categoriaRepository.findById(categoriaId)
+                .orElseThrow(() -> new IllegalArgumentException("Categoria no encontrada"));
+        receta.getCategorias().add(categoria);
+        return recetaRepository.save(receta);
+    }
+
+    @Override
+    @Transactional
+    public Receta eliminarCategoria(Integer recetaId, Integer categoriaId) {
+        Receta receta = recetaRepository.findById(recetaId)
+                .orElseThrow(() -> new RecetaNoEncontradaException("Receta no encontrada"));
+        Categoria categoria = categoriaRepository.findById(categoriaId)
+                .orElseThrow(() -> new IllegalArgumentException("Categoria no encontrada"));
+        receta.getCategorias().remove(categoria);
+        return recetaRepository.save(receta);
     }
 }

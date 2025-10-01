@@ -81,17 +81,7 @@ public interface RecetaService {
      */
     Integer obtenerCalificacionDeReceta(Integer usuarioId, Integer recetaId);
 
-    /**
-     * Crea y guarda una notificación para un usuario.
-     *
-     * @param destinatarioId El ID del usuario que recibirá la notificación.
-     * @param tipo           El tipo de notificación.
-     * @param emisorId       El ID del usuario que originó la notificación (puede
-     *                       ser nulo).
-     * @param recetaId       El ID de la receta asociada a la notificación (puede
-     *                       ser nulo).
-     * @param mensaje        El mensaje de la notificación.
-     */
-    void crearNotificacion(Integer destinatarioId, TipoNotificacion tipo, Integer emisorId, Integer recetaId,
-            String mensaje);
+    Receta agregarCategoria(Integer recetaId, Integer categoriaId);
+
+    Receta eliminarCategoria(Integer recetaId, Integer categoriaId);
 }

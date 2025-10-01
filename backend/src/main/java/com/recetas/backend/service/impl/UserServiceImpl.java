@@ -15,9 +15,11 @@ import com.recetas.backend.domain.entity.SeguidorId;
 import com.recetas.backend.domain.entity.Usuario;
 import com.recetas.backend.domain.repository.RolRepository;
 import com.recetas.backend.domain.repository.SeguidorRepository;
+import com.recetas.backend.domain.model.enums.TipoNotificacion;
 import com.recetas.backend.domain.repository.UsuarioRepository;
 import com.recetas.backend.exception.SeguimientoException;
 import com.recetas.backend.exception.UsuarioNoEncontradoException;
+import com.recetas.backend.service.NotificacionService;
 import com.recetas.backend.service.UserService;
 
 /**
@@ -30,13 +32,18 @@ public class UserServiceImpl implements UserService {
     private final SeguidorRepository seguidorRepository;
     private final PasswordEncoder passwordEncoder;
     private final RolRepository rolRepository; // Added RolRepository for assigning roles
+    private final NotificacionService notificacionService;
 
     public UserServiceImpl(UsuarioRepository usuarioRepository, SeguidorRepository seguidorRepository,
-            PasswordEncoder passwordEncoder, RolRepository rolRepository) { // Added RolRepository to constructor
+            PasswordEncoder passwordEncoder, RolRepository rolRepository, NotificacionService notificacionService) { // Added
+                                                                                                                     // RolRepository
+                                                                                                                     // to
+                                                                                                                     // constructor
         this.usuarioRepository = usuarioRepository;
         this.seguidorRepository = seguidorRepository;
         this.passwordEncoder = passwordEncoder;
         this.rolRepository = rolRepository; // Initialize RolRepository
+        this.notificacionService = notificacionService;
     }
 
     /**
@@ -100,6 +107,17 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
+     * Busca un usuario por su nombre de usuario.
+     *
+     * @param nombreUsuario El nombre de usuario a buscar.
+     * @return Un Optional que contiene el usuario si se encuentra, o vacío si no.
+     */
+    @Override
+    public Optional<Usuario> findByNombreUsuario(String nombreUsuario) {
+        return usuarioRepository.findByNombreUsuario(nombreUsuario);
+    }
+
+    /**
      * Sigue a otro usuario.
      *
      * @param seguidorId El ID del usuario que sigue.
@@ -129,6 +147,9 @@ public class UserServiceImpl implements UserService {
         Seguidor relacionSeguidor = new Seguidor(id, seguidor, seguido);
 
         seguidorRepository.save(relacionSeguidor);
+
+        // Crear notificacion
+        notificacionService.crearNotificacion(seguidoId, TipoNotificacion.NUEVO_SEGUIDOR, seguidorId, null);
     }
 
     /**

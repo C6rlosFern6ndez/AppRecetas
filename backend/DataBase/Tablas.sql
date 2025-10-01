@@ -16,7 +16,7 @@ CREATE TABLE `usuarios` (
 
 CREATE TABLE `roles` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `nombre` VARCHAR(20) NOT NULL UNIQUE, 
+  `nombre` VARCHAR(20) NOT NULL UNIQUE,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 
@@ -43,8 +43,8 @@ CREATE TABLE `recetas` (
   `titulo` VARCHAR(100) NOT NULL,
   `descripcion` TEXT NOT NULL,
   `tiempo_preparacion` INT NOT NULL,
-  `dificultad` ENUM('Fácil', 'Media', 'Difícil') NOT NULL, 
-  `porciones` INT NOT NULL, 
+  `dificultad` ENUM('Fácil', 'Media', 'Difícil') NOT NULL,
+  `porciones` INT NOT NULL,
   `url_imagen` VARCHAR(255) NULL,
   `usuario_id` INT NOT NULL,
   `fecha_creacion` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
@@ -168,6 +168,7 @@ CREATE TABLE `notificaciones` (
   `tipo` ENUM('NUEVO_SEGUIDOR', 'ME_GUSTA_RECETA', 'NUEVO_COMENTARIO'),
   `emisor_id` INT,
   `receta_id` INT,
+  `mensaje` TEXT NULL,
   `leida` BOOLEAN DEFAULT FALSE,
   `fecha_creacion` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -175,3 +176,7 @@ CREATE TABLE `notificaciones` (
   FOREIGN KEY (`emisor_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
   FOREIGN KEY (`receta_id`) REFERENCES `recetas` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB;
+
+-- Insertar roles por defecto
+INSERT INTO `roles` (`nombre`) VALUES ('ROLE_USER');
+INSERT INTO `roles` (`nombre`) VALUES ('ROLE_ADMIN');

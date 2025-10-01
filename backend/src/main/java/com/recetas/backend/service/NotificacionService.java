@@ -12,13 +12,14 @@ public interface NotificacionService {
 
     /**
      * Crea una nueva notificación para un usuario.
-     * 
+     *
      * @param usuarioId El ID del usuario que recibirá la notificación.
      * @param tipo      El tipo de notificación.
-     * @param mensaje   El mensaje de la notificación.
+     * @param emisorId  El ID del usuario que origina la notificación.
+     * @param recetaId  El ID de la receta asociada a la notificación (opcional).
      * @return La notificación creada.
      */
-    Notificacion crearNotificacion(Integer usuarioId, TipoNotificacion tipo, String mensaje);
+    Notificacion crearNotificacion(Integer usuarioId, TipoNotificacion tipo, Integer emisorId, Long recetaId);
 
     /**
      * Obtiene todas las notificaciones para un usuario dado.

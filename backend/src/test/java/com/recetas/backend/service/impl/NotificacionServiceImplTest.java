@@ -67,33 +67,76 @@ class NotificacionServiceImplTest {
     }
 
     @Test
-    void crearNotificacion_success() {
+    void crearNotificacion_nuevoSeguidor_success() {
+        Usuario emisor = new Usuario();
+        emisor.setId(2);
+        emisor.setNombreUsuario("emisorUser");
+
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
-        when(notificacionRepository.save(any(Notificacion.class))).thenReturn(notificacion);
+        when(usuarioRepository.findById(emisor.getId())).thenReturn(Optional.of(emisor));
+        when(notificacionRepository.save(any(Notificacion.class))).thenAnswer(i -> i.getArguments()[0]);
 
         Notificacion createdNotificacion = notificacionService.crearNotificacion(usuario.getId(),
-                TipoNotificacion.NUEVO_COMENTARIO, "Nuevo comentario en tu receta.");
+                TipoNotificacion.NUEVO_SEGUIDOR, emisor.getId(), null);
 
         assertNotNull(createdNotificacion);
         assertEquals(usuario.getId(), createdNotificacion.getUsuario().getId());
-        assertEquals(TipoNotificacion.NUEVO_COMENTARIO, createdNotificacion.getTipo());
-        assertEquals("Nuevo comentario en tu receta.", createdNotificacion.getMensaje());
-        assertFalse(createdNotificacion.isLeida());
-
-        verify(usuarioRepository, times(1)).findById(usuario.getId());
-        verify(notificacionRepository, times(1)).save(any(Notificacion.class));
+        assertEquals(emisor.getId(), createdNotificacion.getEmisor().getId());
+        assertEquals(TipoNotificacion.NUEVO_SEGUIDOR, createdNotificacion.getTipo());
+        assertEquals("El usuario emisorUser ha comenzado a seguirte.", createdNotificacion.getMensaje());
     }
 
     @Test
-    void crearNotificacion_usuarioNotFound() {
+    void crearNotificacion_meGustaReceta_success() {
+        Usuario emisor = new Usuario();
+        emisor.setId(2);
+        emisor.setNombreUsuario("emisorUser");
+
+        when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById(emisor.getId())).thenReturn(Optional.of(emisor));
+        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
+        when(notificacionRepository.save(any(Notificacion.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        Notificacion createdNotificacion = notificacionService.crearNotificacion(usuario.getId(),
+                TipoNotificacion.ME_GUSTA_RECETA, emisor.getId(), receta.getId().longValue());
+
+        assertNotNull(createdNotificacion);
+        assertEquals(usuario.getId(), createdNotificacion.getUsuario().getId());
+        assertEquals(emisor.getId(), createdNotificacion.getEmisor().getId());
+        assertEquals(receta.getId(), createdNotificacion.getReceta().getId());
+        assertEquals(TipoNotificacion.ME_GUSTA_RECETA, createdNotificacion.getTipo());
+        assertEquals("A emisorUser le ha gustado tu receta 'Test Receta'.", createdNotificacion.getMensaje());
+    }
+
+    @Test
+    void crearNotificacion_nuevoComentario_success() {
+        Usuario emisor = new Usuario();
+        emisor.setId(2);
+        emisor.setNombreUsuario("emisorUser");
+
+        when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.findById(emisor.getId())).thenReturn(Optional.of(emisor));
+        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
+        when(notificacionRepository.save(any(Notificacion.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        Notificacion createdNotificacion = notificacionService.crearNotificacion(usuario.getId(),
+                TipoNotificacion.NUEVO_COMENTARIO, emisor.getId(), receta.getId().longValue());
+
+        assertNotNull(createdNotificacion);
+        assertEquals(usuario.getId(), createdNotificacion.getUsuario().getId());
+        assertEquals(emisor.getId(), createdNotificacion.getEmisor().getId());
+        assertEquals(receta.getId(), createdNotificacion.getReceta().getId());
+        assertEquals(TipoNotificacion.NUEVO_COMENTARIO, createdNotificacion.getTipo());
+        assertEquals("emisorUser ha comentado en tu receta 'Test Receta'.", createdNotificacion.getMensaje());
+    }
+
+    @Test
+    void crearNotificacion_usuarioReceptorNotFound() {
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> notificacionService
-                .crearNotificacion(usuario.getId(), TipoNotificacion.NUEVO_COMENTARIO, "Test message"));
-        assertEquals("Usuario no encontrado", exception.getMessage());
-
-        verify(usuarioRepository, times(1)).findById(usuario.getId());
-        verifyNoInteractions(notificacionRepository);
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> notificacionService.crearNotificacion(usuario.getId(), TipoNotificacion.NUEVO_SEGUIDOR, 2, null));
+        assertEquals("Usuario receptor no encontrado", exception.getMessage());
     }
 
     @Test

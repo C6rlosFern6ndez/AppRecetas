@@ -6,10 +6,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.recetas.backend.domain.entity.Comentario;
 import com.recetas.backend.domain.entity.Receta;
 import com.recetas.backend.domain.entity.Usuario;
+import com.recetas.backend.domain.model.enums.TipoNotificacion;
 import com.recetas.backend.domain.repository.ComentarioRepository;
 import com.recetas.backend.domain.repository.RecetaRepository;
 import com.recetas.backend.domain.repository.UsuarioRepository;
 import com.recetas.backend.service.ComentarioService;
+import com.recetas.backend.service.NotificacionService;
 
 /**
  * Implementación de los servicios relacionados con la gestión de comentarios.
@@ -20,12 +22,14 @@ public class ComentarioServiceImpl implements ComentarioService {
     private final ComentarioRepository comentarioRepository;
     private final UsuarioRepository usuarioRepository;
     private final RecetaRepository recetaRepository;
+    private final NotificacionService notificacionService;
 
     public ComentarioServiceImpl(ComentarioRepository comentarioRepository, UsuarioRepository usuarioRepository,
-            RecetaRepository recetaRepository) {
+            RecetaRepository recetaRepository, NotificacionService notificacionService) {
         this.comentarioRepository = comentarioRepository;
         this.usuarioRepository = usuarioRepository;
         this.recetaRepository = recetaRepository;
+        this.notificacionService = notificacionService;
     }
 
     /**
@@ -49,7 +53,13 @@ public class ComentarioServiceImpl implements ComentarioService {
         nuevoComentario.setUsuario(usuario);
         nuevoComentario.setReceta(receta);
 
-        return comentarioRepository.save(nuevoComentario);
+        Comentario comentarioGuardado = comentarioRepository.save(nuevoComentario);
+
+        // Crear notificacion
+        notificacionService.crearNotificacion(receta.getUsuario().getId(), TipoNotificacion.NUEVO_COMENTARIO, usuarioId,
+                recetaId.longValue());
+
+        return comentarioGuardado;
     }
 
     /**

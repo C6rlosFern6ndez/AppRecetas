@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.recetas.backend.domain.entity.Notificacion;
+import com.recetas.backend.domain.entity.Receta;
 import com.recetas.backend.domain.entity.Usuario;
 import com.recetas.backend.domain.model.enums.TipoNotificacion;
 import com.recetas.backend.domain.repository.NotificacionRepository;
@@ -30,36 +31,43 @@ public class NotificacionServiceImpl implements NotificacionService {
         this.recetaRepository = recetaRepository;
     }
 
-    /**
-     * Crea una nueva notificación para un usuario.
-     * 
-     * @param usuarioId El ID del usuario que recibirá la notificación.
-     * @param tipo      El tipo de notificación.
-     * @param mensaje   El mensaje de la notificación.
-     * @return La notificación creada.
-     */
     @Override
     @Transactional
-    public Notificacion crearNotificacion(Integer usuarioId, TipoNotificacion tipo, String mensaje) {
+    public Notificacion crearNotificacion(Integer usuarioId, TipoNotificacion tipo, Integer emisorId, Long recetaId) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException("Usuario receptor no encontrado"));
+        Usuario emisor = usuarioRepository.findById(emisorId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario emisor no encontrado"));
 
         Notificacion notificacion = new Notificacion();
         notificacion.setUsuario(usuario);
         notificacion.setTipo(tipo);
-        // El mensaje puede ser genérico o construido dinámicamente en el futuro.
-        // Por ahora, usamos el mensaje proporcionado.
+        notificacion.setEmisor(emisor);
+
+        String mensaje;
+        switch (tipo) {
+            case NUEVO_SEGUIDOR:
+                mensaje = String.format("El usuario %s ha comenzado a seguirte.", emisor.getNombreUsuario());
+                break;
+            case ME_GUSTA_RECETA:
+                Receta recetaLike = recetaRepository.findById(recetaId.intValue())
+                        .orElseThrow(() -> new IllegalArgumentException("Receta no encontrada"));
+                notificacion.setReceta(recetaLike);
+                mensaje = String.format("A %s le ha gustado tu receta '%s'.", emisor.getNombreUsuario(),
+                        recetaLike.getTitulo());
+                break;
+            case NUEVO_COMENTARIO:
+                Receta recetaComentario = recetaRepository.findById(recetaId.intValue())
+                        .orElseThrow(() -> new IllegalArgumentException("Receta no encontrada"));
+                notificacion.setReceta(recetaComentario);
+                mensaje = String.format("%s ha comentado en tu receta '%s'.", emisor.getNombreUsuario(),
+                        recetaComentario.getTitulo());
+                break;
+            default:
+                throw new IllegalArgumentException("Tipo de notificación no soportado");
+        }
+
         notificacion.setMensaje(mensaje);
-        notificacion.setLeida(false);
-        notificacion.setFechaCreacion(java.time.LocalDateTime.now());
-
-        // Si el tipo de notificación requiere un emisor o una receta, se deberían
-        // añadir parámetros adicionales al método o deducirlos de la lógica de negocio.
-        // Por ejemplo, para una notificación de "nuevo seguidor", el emisor sería el
-        // seguidor.
-        // Para una notificación de "nuevo comentario", el emisor sería el autor del
-        // comentario.
-
         return notificacionRepository.save(notificacion);
     }
 

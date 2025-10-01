@@ -67,5 +67,13 @@ public interface UserService {
      */
     Usuario findById(Integer id);
 
+    /**
+     * Busca un usuario por su nombre de usuario.
+     *
+     * @param nombreUsuario El nombre de usuario a buscar.
+     * @return Un Optional que contiene el usuario si se encuentra, o vacío si no.
+     */
+    Optional<Usuario> findByNombreUsuario(String nombreUsuario);
+
     Usuario registrarUsuario(SignupRequestDto signupRequestDto);
 }
