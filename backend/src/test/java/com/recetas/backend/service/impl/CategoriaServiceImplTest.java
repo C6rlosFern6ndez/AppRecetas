@@ -2,7 +2,6 @@ package com.recetas.backend.service.impl;
 
 import com.recetas.backend.domain.entity.Categoria;
 import com.recetas.backend.domain.repository.CategoriaRepository;
-import com.recetas.backend.exception.CategoriaNoEncontradaException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -6,12 +6,9 @@ import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import com.recetas.backend.domain.entity.Calificacion;
 import com.recetas.backend.domain.entity.Comentario;
-import com.recetas.backend.domain.entity.Notificacion;
 import com.recetas.backend.domain.entity.Receta;
 import com.recetas.backend.domain.model.enums.Dificultad; // Importar Dificultad
-import com.recetas.backend.domain.model.enums.TipoNotificacion;
 
 /**
  * Interfaz para los servicios relacionados con la gestión de recetas.

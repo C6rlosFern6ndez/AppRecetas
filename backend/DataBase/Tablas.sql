@@ -2,6 +2,20 @@ DROP DATABASE IF EXISTS `recetas_db`;
 CREATE DATABASE IF NOT EXISTS `recetas_db`;
 USE `recetas_db`;
 
+-- 1. Tablas de Roles y Usuarios
+
+CREATE TABLE `roles` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `nombre` VARCHAR(20) NOT NULL UNIQUE,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB;
+
+-- Insertar roles por defecto inmediatamente
+INSERT INTO `roles` (`id`, `nombre`) VALUES (1, 'USER');
+INSERT INTO `roles` (`id`, `nombre`) VALUES (2, 'SUPERADMIN');
+INSERT INTO `roles` (`id`, `nombre`) VALUES (3, 'INVITADO');
+INSERT INTO `roles` (`id`, `nombre`) VALUES (4, 'ADMIN');
+
 
 CREATE TABLE `usuarios` (
   `id` INT NOT NULL AUTO_INCREMENT,
@@ -10,23 +24,13 @@ CREATE TABLE `usuarios` (
   `contrasena` VARCHAR(255) NOT NULL,
   `url_foto_perfil` VARCHAR(255) NULL,
   `fecha_registro` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB;
-
-
-CREATE TABLE `roles` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `nombre` VARCHAR(20) NOT NULL UNIQUE,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB;
-
-
-CREATE TABLE `usuario_roles` (
-  `usuario_id` INT NOT NULL,
-  `rol_id` INT NOT NULL,
-  PRIMARY KEY (`usuario_id`, `rol_id`),
-  FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`rol_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE
+  
+  -- Columna de Rol Único: Asigna automáticamente el rol con ID 1 (USER)
+  `rol_id` INT NOT NULL DEFAULT 1, 
+  
+  PRIMARY KEY (`id`),
+  -- Clave foránea al rol
+  FOREIGN KEY (`rol_id`) REFERENCES `roles` (`id`) ON DELETE RESTRICT 
 ) ENGINE=InnoDB;
 
 
@@ -37,6 +41,8 @@ CREATE TABLE `seguidores` (
   FOREIGN KEY (`seguidor_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`seguido_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+-- 2. Tablas de Recetas
 
 CREATE TABLE `recetas` (
   `id` INT NOT NULL AUTO_INCREMENT,
@@ -52,8 +58,6 @@ CREATE TABLE `recetas` (
   FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- Existing tables (order fine)
--- ...
 CREATE TABLE `pasos` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `receta_id` INT NOT NULL,
@@ -67,12 +71,24 @@ CREATE TABLE `pasos` (
     ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+
 CREATE TABLE `categorias` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `nombre` VARCHAR(50) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `nombre_UNIQUE` (`nombre` ASC)
 ) ENGINE=InnoDB;
+
+-- INSERCIÓN DE CATEGORÍAS
+INSERT INTO `categorias` (`nombre`) VALUES
+('Postres'),
+('Comida Saludable'),
+('Vegetariano'),
+('Carnes'),
+('Pescados y Mariscos'),
+('Pasta'),
+('Guarniciones'),
+('Desayunos');
 
 CREATE TABLE `receta_categorias` (
   `receta_id` INT NOT NULL,
@@ -115,6 +131,8 @@ CREATE TABLE `receta_ingredientes` (
     ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- 3. Tablas de Interacción
+
 CREATE TABLE `comentarios` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `receta_id` INT NOT NULL,
@@ -154,7 +172,7 @@ CREATE TABLE `calificaciones` (
     ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
-CREATE TABLE `me_gusta_recetas` (
+CREATE TABLE `recetas_likes` (
   `usuario_id` INT NOT NULL,
   `receta_id` INT NOT NULL,
   PRIMARY KEY (`usuario_id`, `receta_id`),
@@ -176,7 +194,3 @@ CREATE TABLE `notificaciones` (
   FOREIGN KEY (`emisor_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
   FOREIGN KEY (`receta_id`) REFERENCES `recetas` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB;
-
--- Insertar roles por defecto
-INSERT INTO `roles` (`nombre`) VALUES ('ROLE_USER');
-INSERT INTO `roles` (`nombre`) VALUES ('ROLE_ADMIN');

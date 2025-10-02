@@ -58,7 +58,7 @@ public class Usuario implements UserDetails {
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "usuario_roles", joinColumns = @JoinColumn(name = "usuario_id"), inverseJoinColumns = @JoinColumn(name = "rol_id"))
-    private Set<Rol> roles;
+    private Set<Rol> roles = new java.util.HashSet<>(); // Initialize roles to prevent NullPointerException
 
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Receta> recetas;
@@ -95,7 +95,7 @@ public class Usuario implements UserDetails {
 
     @Override
     public String getUsername() {
-        return email;
+        return nombreUsuario;
     }
 
     @Override

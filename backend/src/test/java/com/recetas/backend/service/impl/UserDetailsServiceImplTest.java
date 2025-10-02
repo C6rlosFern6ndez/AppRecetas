@@ -43,7 +43,6 @@ class UserDetailsServiceImplTest {
     void loadUserByUsername_shouldLoadUserByUsername() {
         // Simula el comportamiento del repositorio para encontrar por nombre de usuario
         when(usuarioRepository.findByNombreUsuario(anyString())).thenReturn(Optional.of(usuario));
-        when(usuarioRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
         // Llama al método del servicio
         UserDetails userDetails = userDetailsService.loadUserByUsername("testuser");
@@ -72,9 +71,9 @@ class UserDetailsServiceImplTest {
         UserDetails userDetails = userDetailsService.loadUserByUsername("test@example.com");
 
         // Verifica que los detalles del usuario no sean nulos y el nombre de usuario
-        // sea el esperado (que en este caso es el email)
+        // sea el esperado (que en este caso es el nombre de usuario)
         assertNotNull(userDetails);
-        assertEquals("test@example.com", userDetails.getUsername());
+        assertEquals("testuser", userDetails.getUsername());
 
         // Verifica que ambos métodos del repositorio fueron llamados
         verify(usuarioRepository, times(1)).findByNombreUsuario(anyString());

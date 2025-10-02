@@ -18,7 +18,7 @@ public interface RecetaMapper {
     @Mapping(target = "comentarios", ignore = true)
     @Mapping(target = "calificaciones", ignore = true)
     @Mapping(target = "meGustas", ignore = true)
-    @Mapping(target = "urlImagen", source = "urlImagen") // Añadir mapeo explícito para urlImagen
+    @Mapping(target = "urlImagen", ignore = true) // Ignorar urlImagen ya que no está en el DTO
     Receta toEntity(RecetaRequestDto dto);
 
     @Mapping(target = "id", ignore = true)
@@ -30,6 +30,6 @@ public interface RecetaMapper {
     @Mapping(target = "comentarios", ignore = true)
     @Mapping(target = "calificaciones", ignore = true)
     @Mapping(target = "meGustas", ignore = true)
-    @Mapping(target = "urlImagen", source = "urlImagen") // Añadir mapeo explícito para urlImagen
+    @Mapping(target = "urlImagen", ignore = true) // Ignorar urlImagen ya que no está en el DTO
     void updateEntityFromDto(RecetaRequestDto dto, @MappingTarget Receta entity);
 }

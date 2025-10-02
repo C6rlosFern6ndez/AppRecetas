@@ -1,16 +1,15 @@
 package com.recetas.backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.recetas.backend.domain.entity.Categoria;
 import com.recetas.backend.config.SecurityConfig;
-import com.recetas.backend.security.AuthEntryPointJwt;
+import com.recetas.backend.domain.entity.Categoria;
 import com.recetas.backend.service.CategoriaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -25,27 +24,21 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CategoriaController.class)
-@Import(SecurityConfig.class) // Importar la configuración de seguridad
-class CategoriaControllerTest {
+@Import(SecurityConfig.class) // Es importante importar la configuración de seguridad si la usas.
+public class CategoriaControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @Mock
+    @MockBean
     private CategoriaService categoriaService;
 
-    @Mock
-    private UserDetailsService userDetailsService; // Mock para UserDetailsService
-    @Mock
-    private AuthEntryPointJwt unauthorizedHandler; // Mock para AuthEntryPointJwt
+    @MockBean
+    private UserDetailsService userDetailsService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -61,7 +54,7 @@ class CategoriaControllerTest {
 
     @Test
     @DisplayName("Debería obtener todas las categorías")
-    @WithMockUser(username = "testuser") // Añadir usuario mock para acceso autenticado
+    @WithMockUser(username = "testuser")
     void getAllCategorias_shouldReturnListOfCategories() throws Exception {
         List<Categoria> categorias = Arrays.asList(categoria1, categoria2);
         when(categoriaService.findAll()).thenReturn(categorias);
@@ -69,16 +62,16 @@ class CategoriaControllerTest {
         mockMvc.perform(get("/api/categorias")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.size()").value(categorias.size()))
+                .andExpect(jsonPath("$.size()").value(2))
                 .andExpect(jsonPath("$[0].nombre").value("Desayuno"))
                 .andExpect(jsonPath("$[1].nombre").value("Almuerzo"));
     }
 
     @Test
     @DisplayName("Debería obtener una categoría por ID")
-    @WithMockUser(username = "testuser") // Añadir usuario mock para acceso autenticado
+    @WithMockUser(username = "testuser")
     void getCategoriaById_shouldReturnCategory() throws Exception {
-        when(categoriaService.findById(anyInt())).thenReturn(Optional.of(categoria1));
+        when(categoriaService.findById(1)).thenReturn(Optional.of(categoria1));
 
         mockMvc.perform(get("/api/categorias/{id}", 1)
                 .contentType(MediaType.APPLICATION_JSON))
@@ -88,7 +81,7 @@ class CategoriaControllerTest {
 
     @Test
     @DisplayName("Debería devolver 404 si la categoría no es encontrada por ID")
-    @WithMockUser(username = "testuser") // Añadir usuario mock para acceso autenticado
+    @WithMockUser(username = "testuser")
     void getCategoriaById_shouldReturnNotFound() throws Exception {
         when(categoriaService.findById(anyInt())).thenReturn(Optional.empty());
 
@@ -99,10 +92,11 @@ class CategoriaControllerTest {
 
     @Test
     @DisplayName("Debería crear una nueva categoría")
-    @WithMockUser(username = "testuser", roles = "ADMIN") // Asumiendo que la creación requiere rol ADMIN
+    @WithMockUser(username = "testuser", roles = { "ADMIN" })
     void createCategoria_shouldReturnCreatedCategory() throws Exception {
         Categoria newCategoria = new Categoria(null, "Cena");
         Categoria savedCategoria = new Categoria(3, "Cena");
+
         when(categoriaService.save(any(Categoria.class))).thenReturn(savedCategoria);
 
         mockMvc.perform(post("/api/categorias")

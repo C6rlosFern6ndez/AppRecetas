@@ -6,8 +6,7 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.5.6</version>
-		<relativePath/> <!-- lookup parent from repository -->
-	</parent>
+		<relativePath/> </parent>
 	<groupId>com.recetas</groupId>
 	<artifactId>backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
@@ -28,8 +27,7 @@
 	</scm>
 	<properties>
 		<java.version>17</java.version>
-		<mariadb.version>3.1.4</mariadb.version> <!-- Versión del driver de MariaDB -->
-	</properties>
+		<mariadb.version>3.1.4</mariadb.version> </properties>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -87,7 +85,6 @@
 			<scope>test</scope>
 		</dependency>
 		
-		<!-- JWT -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-api</artifactId>
@@ -106,14 +103,12 @@
 			<scope>runtime</scope>
 		</dependency>
 
-		<!-- OpenAPI (Swagger) -->
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>2.5.0</version>
 		</dependency>
 
-		<!-- Flyway para migraciones de BBDD -->
 		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-core</artifactId>
@@ -123,7 +118,6 @@
 			<artifactId>flyway-mysql</artifactId>
 		</dependency>
 
-		<!-- MapStruct para mapeo de DTOs -->
 		<dependency>
 			<groupId>org.mapstruct</groupId>
 			<artifactId>mapstruct</artifactId>
@@ -162,12 +156,10 @@
 					</excludes>
 				</configuration>
 			</plugin>
-			<!-- Configuración del plugin de Flyway -->
 			<plugin>
 				<groupId>org.flywaydb</groupId>
 				<artifactId>flyway-maven-plugin</artifactId>
-				<version>11.7.2</version> <!-- Asegúrate de que esta versión coincida con la dependencia -->
-				<configuration>
+				<version>11.7.2</version> <configuration>
 					<url>jdbc:mariadb://localhost:3336/recetas_db</url>
 					<user>root</user>
 					<password>123456</password>
@@ -175,14 +167,13 @@
 						<location>classpath:db/migration</location>
 					</locations>
 					<baselineOnMigrate>true</baselineOnMigrate>
-					<baselineVersion>0</baselineVersion>
+					<baselineVersion>1</baselineVersion>
 				</configuration>
 				<dependencies>
 					<dependency>
 						<groupId>org.mariadb.jdbc</groupId>
 						<artifactId>mariadb-java-client</artifactId>
-						<version>${mariadb.version}</version> <!-- Usar la versión definida en las propiedades -->
-					</dependency>
+						<version>${mariadb.version}</version> </dependency>
 				</dependencies>
 			</plugin>
 		</plugins>
