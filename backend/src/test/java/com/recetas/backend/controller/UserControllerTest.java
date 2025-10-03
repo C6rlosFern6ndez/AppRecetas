@@ -18,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.recetas.backend.domain.entity.Rol;
@@ -37,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(UserController.class)
 @Import({ SecurityConfig.class, UserDetailsServiceImpl.class, AuthEntryPointJwt.class, JwtUtils.class })
+@ActiveProfiles("test")
 class UserControllerTest {
 
     @Autowired

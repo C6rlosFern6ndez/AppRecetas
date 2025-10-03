@@ -27,7 +27,6 @@ import com.recetas.backend.security.JwtUtils; // Importar JwtUtils
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private final UserDetailsService userDetailsService;
     private final AuthEntryPointJwt unauthorizedHandler;
     private final JwtUtils jwtUtils; // Añadir JwtUtils como dependencia
 
@@ -36,15 +35,13 @@ public class SecurityConfig {
      * Esto es una mejor práctica porque hace las dependencias obligatorias y
      * explícitas.
      */
-    public SecurityConfig(UserDetailsService userDetailsService, AuthEntryPointJwt unauthorizedHandler,
-            JwtUtils jwtUtils) {
-        this.userDetailsService = userDetailsService;
+    public SecurityConfig(AuthEntryPointJwt unauthorizedHandler, JwtUtils jwtUtils) {
         this.unauthorizedHandler = unauthorizedHandler;
         this.jwtUtils = jwtUtils;
     }
 
     @Bean
-    public AuthTokenFilter authenticationJwtTokenFilter() {
+    public AuthTokenFilter authenticationJwtTokenFilter(UserDetailsService userDetailsService) {
         return new AuthTokenFilter(jwtUtils, userDetailsService); // Pasar JwtUtils y UserDetailsService al constructor
     }
 
@@ -62,7 +59,7 @@ public class SecurityConfig {
      * Bean para configurar la cadena de filtros de seguridad.
      */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, UserDetailsService userDetailsService) throws Exception {
         http.cors(cors -> cors.disable())
                 .csrf(csrf -> csrf.disable())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
@@ -75,7 +72,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/recetas/**").permitAll()
                         .anyRequest().authenticated());
 
-        http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(authenticationJwtTokenFilter(userDetailsService),
+                UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

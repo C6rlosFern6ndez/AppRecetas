@@ -19,11 +19,14 @@ import org.springframework.security.authentication.AuthenticationManager;
 import com.recetas.backend.exception.EmailAlreadyInUseException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.test.context.ActiveProfiles;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@ActiveProfiles("test")
 class AuthControllerTest {
 
     @Mock

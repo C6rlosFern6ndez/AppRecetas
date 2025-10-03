@@ -10,11 +10,14 @@ import com.recetas.backend.domain.repository.UsuarioRepository;
 import com.recetas.backend.exception.AccesoDenegadoException;
 import com.recetas.backend.exception.RecetaNoEncontradaException;
 import com.recetas.backend.exception.UsuarioNoEncontradoException;
+import com.recetas.backend.security.AuthEntryPointJwt;
+import com.recetas.backend.security.JwtUtils;
 import com.recetas.backend.service.RecetaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.oauth2.resource.OAuth2ResourceServerProperties.Jwt;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -25,7 +28,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.multipart.MultipartFile; // Importar MultipartFile
 
@@ -53,6 +58,7 @@ import com.recetas.backend.config.SecurityConfig;
 @WebMvcTest(RecetaController.class)
 @AutoConfigureMockMvc
 @Import(SecurityConfig.class)
+@ActiveProfiles("test")
 class RecetaControllerTest {
 
         @Autowired
@@ -63,6 +69,15 @@ class RecetaControllerTest {
 
         @MockBean
         private UsuarioRepository usuarioRepository;
+
+        @MockBean
+        private JwtUtils jwtUtils;
+
+        @MockBean
+        private UserDetailsService userDetailsService;
+
+        @MockBean
+        private AuthEntryPointJwt authEntryPointJwt;
 
         // Se eliminan los MockBeans de RecetaMapper, UserDetailsService,
         // AuthEntryPointJwt y JwtUtils

@@ -15,6 +15,7 @@ import org.springframework.http.MediaType;
 import com.recetas.backend.security.AuthEntryPointJwt;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
@@ -30,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(CategoriaController.class)
 @Import(SecurityConfig.class) // Es importante importar la configuración de seguridad si la usas.
+@ActiveProfiles("test")
 public class CategoriaControllerTest {
 
     @Autowired
