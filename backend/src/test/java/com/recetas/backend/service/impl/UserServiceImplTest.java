@@ -7,6 +7,7 @@ import com.recetas.backend.domain.repository.RolRepository;
 import com.recetas.backend.domain.repository.SeguidorRepository;
 import com.recetas.backend.domain.repository.UsuarioRepository;
 import com.recetas.backend.domain.dto.SignupRequestDto;
+import com.recetas.backend.domain.entity.Rol;
 import com.recetas.backend.domain.model.enums.TipoNotificacion;
 import com.recetas.backend.exception.EmailAlreadyInUseException;
 import com.recetas.backend.exception.SeguimientoException;
@@ -304,5 +305,39 @@ class UserServiceImplTest {
                 () -> userService.registrarUsuario(signupRequestDto));
         assertEquals("El correo electrónico ya está en uso.", exception.getMessage());
         verify(usuarioRepository, never()).save(any(Usuario.class));
+    }
+
+    @Test
+    void registrarUsuario_success() {
+        SignupRequestDto signupRequestDto = new SignupRequestDto();
+        signupRequestDto.setNombreUsuario("newUser");
+        signupRequestDto.setEmail("new@example.com");
+        signupRequestDto.setContrasena("password");
+
+        Rol userRole = new Rol();
+        userRole.setNombre("USER");
+
+        when(usuarioRepository.findByEmail(signupRequestDto.getEmail())).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(signupRequestDto.getContrasena())).thenReturn("encodedPassword");
+        when(rolRepository.findByNombre("USER")).thenReturn(Optional.of(userRole));
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> {
+            Usuario user = invocation.getArgument(0);
+            user.setId(1); // Simulate saving and getting an ID
+            return user;
+        });
+
+        Usuario result = userService.registrarUsuario(signupRequestDto);
+
+        assertNotNull(result);
+        assertEquals("newUser", result.getNombreUsuario());
+        assertEquals("new@example.com", result.getEmail());
+        assertEquals("encodedPassword", result.getContrasena());
+        assertNotNull(result.getRol());
+        assertEquals("USER", result.getRol().getNombre());
+
+        verify(usuarioRepository, times(1)).findByEmail(signupRequestDto.getEmail());
+        verify(passwordEncoder, times(1)).encode(signupRequestDto.getContrasena());
+        verify(rolRepository, times(1)).findByNombre("USER");
+        verify(usuarioRepository, times(1)).save(any(Usuario.class));
     }
 }

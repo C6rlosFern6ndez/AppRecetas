@@ -1,36 +1,25 @@
 package com.recetas.backend.service.impl;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.Set;
-
+import com.recetas.backend.domain.dto.RecetaRequestDto;
+import com.recetas.backend.domain.entity.*;
+import com.recetas.backend.domain.model.enums.Dificultad;
+import com.recetas.backend.domain.model.enums.TipoNotificacion;
+import com.recetas.backend.domain.repository.*;
+import com.recetas.backend.exception.*;
+import com.recetas.backend.service.ImageUploadService;
+import com.recetas.backend.service.NotificacionService;
+import com.recetas.backend.service.RecetaService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
-import com.recetas.backend.domain.entity.Calificacion;
-import com.recetas.backend.domain.entity.Categoria;
-import com.recetas.backend.domain.entity.Comentario;
-import com.recetas.backend.domain.entity.MeGustaReceta;
-import com.recetas.backend.domain.entity.MeGustaRecetaId;
-import com.recetas.backend.domain.entity.Receta;
-import com.recetas.backend.domain.entity.Usuario;
-import com.recetas.backend.domain.repository.CalificacionRepository;
-import com.recetas.backend.domain.repository.ComentarioRepository;
-import com.recetas.backend.domain.repository.MeGustaRecetaRepository;
-import com.recetas.backend.domain.repository.RecetaRepository;
-import com.recetas.backend.domain.repository.UsuarioRepository;
-import com.recetas.backend.domain.repository.CategoriaRepository;
-import com.recetas.backend.exception.CategoriaNoEncontradaException;
-import com.recetas.backend.exception.ComentarioException;
-import com.recetas.backend.exception.MeGustaException;
-import com.recetas.backend.exception.RecetaNoEncontradaException;
-import com.recetas.backend.exception.UsuarioNoEncontradoException;
-import com.recetas.backend.domain.model.enums.Dificultad;
-import com.recetas.backend.domain.model.enums.TipoNotificacion;
-import com.recetas.backend.service.NotificacionService;
-import com.recetas.backend.service.RecetaService;
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Implementación de los servicios relacionados con la gestión de recetas.
@@ -45,11 +34,12 @@ public class RecetaServiceImpl implements RecetaService {
     private final CalificacionRepository calificacionRepository;
     private final NotificacionService notificacionService;
     private final CategoriaRepository categoriaRepository;
+    private final ImageUploadService imageUploadService; // Inyectar ImageUploadService
 
     public RecetaServiceImpl(RecetaRepository recetaRepository, UsuarioRepository usuarioRepository,
             MeGustaRecetaRepository meGustaRecetaRepository, ComentarioRepository comentarioRepository,
             CalificacionRepository calificacionRepository, NotificacionService notificacionService,
-            CategoriaRepository categoriaRepository) {
+            CategoriaRepository categoriaRepository, ImageUploadService imageUploadService) {
         this.recetaRepository = recetaRepository;
         this.usuarioRepository = usuarioRepository;
         this.meGustaRecetaRepository = meGustaRecetaRepository;
@@ -57,6 +47,143 @@ public class RecetaServiceImpl implements RecetaService {
         this.calificacionRepository = calificacionRepository;
         this.notificacionService = notificacionService;
         this.categoriaRepository = categoriaRepository;
+        this.imageUploadService = imageUploadService;
+    }
+
+    /**
+     * Crea una nueva receta.
+     *
+     * @param recetaDto DTO con los datos de la receta.
+     * @param usuarioId ID del usuario que crea la receta.
+     * @return La receta creada.
+     * @throws UsuarioNoEncontradoException si el usuario no existe.
+     */
+    @Override
+    @Transactional
+    public Receta crearReceta(RecetaRequestDto recetaDto, Integer usuarioId) {
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado con id: " + usuarioId));
+
+        Receta nuevaReceta = new Receta();
+        nuevaReceta.setTitulo(recetaDto.getTitulo());
+        nuevaReceta.setDescripcion(recetaDto.getDescripcion());
+        nuevaReceta.setTiempoPreparacion(recetaDto.getTiempoPreparacion());
+        nuevaReceta.setDificultad(recetaDto.getDificultad());
+        nuevaReceta.setPorciones(recetaDto.getPorciones());
+        nuevaReceta.setUsuario(usuario);
+        nuevaReceta.setFechaCreacion(LocalDateTime.now());
+
+        // Asignar categorías
+        if (recetaDto.getCategoriaIds() != null && !recetaDto.getCategoriaIds().isEmpty()) {
+            Set<Categoria> categorias = recetaDto.getCategoriaIds().stream()
+                    .map(catId -> categoriaRepository.findById(catId)
+                            .orElseThrow(() -> new CategoriaNoEncontradaException(
+                                    "Categoría no encontrada con id: " + catId)))
+                    .collect(Collectors.toSet());
+            nuevaReceta.setCategorias(categorias);
+        } else {
+            nuevaReceta.setCategorias(new HashSet<>());
+        }
+
+        return recetaRepository.save(nuevaReceta);
+    }
+
+    /**
+     * Actualiza una receta existente.
+     *
+     * @param id        ID de la receta a actualizar.
+     * @param recetaDto DTO con los datos actualizados de la receta.
+     * @param usuarioId ID del usuario que realiza la actualización.
+     * @return La receta actualizada.
+     * @throws RecetaNoEncontradaException    si la receta no existe.
+     * @throws AccesoDenegadoException        si el usuario no es el propietario de
+     *                                        la receta.
+     * @throws CategoriaNoEncontradaException si alguna categoría no existe.
+     */
+    @Override
+    @Transactional
+    public Receta actualizarReceta(Integer id, RecetaRequestDto recetaDto, Integer usuarioId) {
+        Receta recetaExistente = recetaRepository.findById(id)
+                .orElseThrow(() -> new RecetaNoEncontradaException("Receta no encontrada con ID: " + id));
+
+        if (!recetaExistente.getUsuario().getId().equals(usuarioId)) {
+            throw new AccesoDenegadoException("No tienes permiso para actualizar esta receta.");
+        }
+
+        recetaExistente.setTitulo(recetaDto.getTitulo());
+        recetaExistente.setDescripcion(recetaDto.getDescripcion());
+        recetaExistente.setTiempoPreparacion(recetaDto.getTiempoPreparacion());
+        recetaExistente.setDificultad(recetaDto.getDificultad());
+        recetaExistente.setPorciones(recetaDto.getPorciones());
+        recetaExistente.setUrlImagen(recetaDto.getUrlImagen()); // Permitir actualizar la URL de la imagen
+
+        // Actualizar categorías
+        if (recetaDto.getCategoriaIds() != null) {
+            Set<Categoria> nuevasCategorias = recetaDto.getCategoriaIds().stream()
+                    .map(catId -> categoriaRepository.findById(catId)
+                            .orElseThrow(() -> new CategoriaNoEncontradaException(
+                                    "Categoría no encontrada con id: " + catId)))
+                    .collect(Collectors.toSet());
+            recetaExistente.setCategorias(nuevasCategorias);
+        } else {
+            recetaExistente.setCategorias(new HashSet<>());
+        }
+
+        return recetaRepository.save(recetaExistente);
+    }
+
+    /**
+     * Sube una imagen para una receta.
+     *
+     * @param recetaId   ID de la receta.
+     * @param imagenFile Archivo de imagen.
+     * @return La URL de la imagen subida.
+     * @throws RecetaNoEncontradaException si la receta no existe.
+     * @throws ImageUploadException        si ocurre un error al subir la imagen.
+     */
+    @Override
+    @Transactional
+    public String subirImagenReceta(Integer recetaId, MultipartFile imagenFile) {
+        Receta receta = recetaRepository.findById(recetaId)
+                .orElseThrow(() -> new RecetaNoEncontradaException("Receta no encontrada con ID: " + recetaId));
+
+        try {
+            // Obtener el nombre de la categoría (si existe) y el título de la receta para
+            // el nombre del archivo
+            String categoryName = receta.getCategorias().stream()
+                    .findFirst() // Tomar la primera categoría si hay varias
+                    .map(Categoria::getNombre)
+                    .orElse("General");
+            String recipeTitle = receta.getTitulo();
+
+            String imageUrl = imageUploadService.uploadImage(imagenFile, categoryName, recipeTitle);
+            receta.setUrlImagen(imageUrl);
+            recetaRepository.save(receta);
+            return imageUrl;
+        } catch (Exception e) {
+            throw new ImageUploadException(
+                    "Error al subir la imagen para la receta " + recetaId + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Elimina una imagen de una receta.
+     *
+     * @param recetaId ID de la receta.
+     * @throws RecetaNoEncontradaException si la receta no existe.
+     */
+    @Override
+    @Transactional
+    public void eliminarImagenReceta(Integer recetaId) {
+        Receta receta = recetaRepository.findById(recetaId)
+                .orElseThrow(() -> new RecetaNoEncontradaException("Receta no encontrada con ID: " + recetaId));
+
+        // Como ImageUploadService no tiene un método deleteImage, simplemente
+        // eliminamos la URL de la receta.
+        if (receta.getUrlImagen() != null && !receta.getUrlImagen().isEmpty()) {
+            receta.setUrlImagen(null);
+            recetaRepository.save(receta);
+        }
     }
 
     /**
@@ -64,6 +191,10 @@ public class RecetaServiceImpl implements RecetaService {
      *
      * @param usuarioId El ID del usuario que da "me gusta".
      * @param recetaId  El ID de la receta a la que se da "me gusta".
+     * @throws UsuarioNoEncontradoException si el usuario no existe.
+     * @throws RecetaNoEncontradaException  si la receta no existe.
+     * @throws MeGustaException             si el usuario ya ha dado "me gusta" a la
+     *                                      receta.
      */
     @Override
     @Transactional
@@ -91,6 +222,10 @@ public class RecetaServiceImpl implements RecetaService {
      *
      * @param usuarioId El ID del usuario que quita el "me gusta".
      * @param recetaId  El ID de la receta a la que se quita el "me gusta".
+     * @throws UsuarioNoEncontradoException si el usuario no existe.
+     * @throws RecetaNoEncontradaException  si la receta no existe.
+     * @throws MeGustaException             si el usuario no ha dado "me gusta" a la
+     *                                      receta.
      */
     @Override
     @Transactional
@@ -112,20 +247,64 @@ public class RecetaServiceImpl implements RecetaService {
     }
 
     /**
-     * Busca una receta por su ID.
+     * Añade un comentario a una receta.
      *
-     * @param id El ID de la receta a buscar.
-     * @return La receta si se encuentra, o null si no existe.
+     * @param recetaId        El ID de la receta a la que se añade el comentario.
+     * @param usuarioId       El ID del usuario que comenta.
+     * @param comentarioTexto El texto del comentario.
+     * @return El comentario guardado.
+     * @throws UsuarioNoEncontradoException si el usuario no existe.
+     * @throws RecetaNoEncontradaException  si la receta no existe.
+     * @throws ComentarioException          si el comentario es inválido.
+     */
+    @Override
+    @Transactional
+    public Comentario agregarComentario(Integer recetaId, Integer usuarioId, String comentarioTexto) {
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado con id: " + usuarioId));
+        Receta receta = recetaRepository.findById(recetaId)
+                .orElseThrow(() -> new RecetaNoEncontradaException("Receta no encontrada con ID: " + recetaId));
+
+        if (comentarioTexto == null || comentarioTexto.trim().isEmpty()) {
+            throw new ComentarioException("El comentario no puede estar vacío.");
+        }
+
+        Comentario nuevoComentario = new Comentario();
+        nuevoComentario.setComentario(comentarioTexto);
+        nuevoComentario.setUsuario(usuario);
+        nuevoComentario.setReceta(receta);
+        nuevoComentario.setFechaComentario(LocalDateTime.now());
+
+        return comentarioRepository.save(nuevoComentario);
+    }
+
+    /**
+     * Obtiene todos los comentarios de una receta específica.
+     *
+     * @param recetaId El ID de la receta.
+     * @return Un conjunto de comentarios para la receta dada.
+     * @throws RecetaNoEncontradaException si la receta no existe.
      */
     @Override
     @Transactional(readOnly = true)
-    public Receta findById(Integer id) {
-        return recetaRepository.findById(id).orElse(null);
+    public Set<Comentario> obtenerComentariosDeReceta(Integer recetaId) {
+        Receta receta = recetaRepository.findById(recetaId)
+                .orElseThrow(() -> new RecetaNoEncontradaException("Receta no encontrada con ID: " + recetaId));
+        return receta.getComentarios();
     }
 
+    /**
+     * Busca una receta por su ID.
+     *
+     * @param id El ID de la receta a buscar.
+     * @return La receta si se encuentra, o lanza una excepción.
+     * @throws RecetaNoEncontradaException si la receta no existe.
+     */
     @Override
-    public Receta guardarReceta(Receta receta) {
-        return recetaRepository.save(receta);
+    @Transactional(readOnly = true)
+    public Receta obtenerRecetaOExcepcion(Integer id) {
+        return recetaRepository.findById(id)
+                .orElseThrow(() -> new RecetaNoEncontradaException("Receta no encontrada con ID: " + id));
     }
 
     /**
@@ -140,14 +319,16 @@ public class RecetaServiceImpl implements RecetaService {
         return recetaRepository.findAll(pageable);
     }
 
+    /**
+     * Obtiene una receta por su ID.
+     *
+     * @param id El ID de la receta a buscar.
+     * @return Un Optional que contiene la receta si se encuentra.
+     */
     @Override
+    @Transactional(readOnly = true)
     public Optional<Receta> obtenerRecetaPorId(Integer id) {
         return recetaRepository.findById(id);
-    }
-
-    @Override
-    public void eliminarReceta(Integer id) {
-        recetaRepository.deleteById(id);
     }
 
     /**
@@ -170,19 +351,43 @@ public class RecetaServiceImpl implements RecetaService {
     }
 
     /**
+     * Elimina una receta.
+     *
+     * @param id        ID de la receta a eliminar.
+     * @param usuarioId ID del usuario que elimina la receta.
+     * @throws RecetaNoEncontradaException si la receta no existe.
+     * @throws AccesoDenegadoException     si el usuario no es el propietario de la
+     *                                     receta.
+     */
+    @Override
+    @Transactional
+    public void eliminarReceta(Integer id, Integer usuarioId) {
+        Receta receta = recetaRepository.findById(id)
+                .orElseThrow(() -> new RecetaNoEncontradaException("Receta no encontrada con ID: " + id));
+
+        if (!receta.getUsuario().getId().equals(usuarioId)) {
+            throw new AccesoDenegadoException("No tienes permiso para eliminar esta receta.");
+        }
+        recetaRepository.delete(receta);
+    }
+
+    /**
      * Califica una receta.
      *
      * @param usuarioId  El ID del usuario que califica.
      * @param recetaId   El ID de la receta a calificar.
      * @param puntuacion La puntuación dada (ej. 1-5).
+     * @throws UsuarioNoEncontradoException si el usuario no existe.
+     * @throws RecetaNoEncontradaException  si la receta no existe.
+     * @throws IllegalArgumentException     si la puntuación es inválida.
      */
     @Override
     @Transactional
     public void calificarReceta(Integer usuarioId, Integer recetaId, Integer puntuacion) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado con id: " + usuarioId));
         Receta receta = recetaRepository.findById(recetaId)
-                .orElseThrow(() -> new IllegalArgumentException("Receta no encontrada"));
+                .orElseThrow(() -> new RecetaNoEncontradaException("Receta no encontrada con id: " + recetaId));
 
         // Validar la puntuación
         if (puntuacion < 1 || puntuacion > 5) {
@@ -212,50 +417,31 @@ public class RecetaServiceImpl implements RecetaService {
      * @param usuarioId El ID del usuario.
      * @param recetaId  El ID de la receta.
      * @return La calificación si existe, o null si no.
+     * @throws UsuarioNoEncontradoException si el usuario no existe.
+     * @throws RecetaNoEncontradaException  si la receta no existe.
      */
     @Override
     @Transactional(readOnly = true)
     public Integer obtenerCalificacionDeReceta(Integer usuarioId, Integer recetaId) {
+        if (!usuarioRepository.existsById(usuarioId)) {
+            throw new UsuarioNoEncontradoException("Usuario no encontrado con id: " + usuarioId);
+        }
+        if (!recetaRepository.existsById(recetaId)) {
+            throw new RecetaNoEncontradaException("Receta no encontrada con id: " + recetaId);
+        }
         Optional<Calificacion> calificacion = calificacionRepository.findByUsuarioIdAndRecetaId(usuarioId, recetaId);
         return calificacion.map(Calificacion::getPuntuacion).orElse(null);
     }
 
     /**
-     * Añade un comentario a una receta.
+     * Agrega una categoría a una receta.
      *
-     * @param comentario El comentario a añadir.
-     * @return El comentario guardado.
+     * @param recetaId    ID de la receta.
+     * @param categoriaId ID de la categoría a agregar.
+     * @return La receta actualizada.
+     * @throws RecetaNoEncontradaException    si la receta no existe.
+     * @throws CategoriaNoEncontradaException si la categoría no existe.
      */
-    @Override
-    @Transactional
-    public Comentario agregarComentario(Comentario comentario) {
-        if (comentario.getComentario() == null || comentario.getComentario().trim().isEmpty()) {
-            throw new ComentarioException("El comentario no puede estar vacío.");
-        }
-        if (comentario.getUsuario() == null) {
-            throw new ComentarioException("El comentario debe estar asociado a un usuario.");
-        }
-        if (comentario.getReceta() == null) {
-            throw new ComentarioException("El comentario debe estar asociado a una receta.");
-        }
-        return comentarioRepository.save(comentario);
-    }
-
-    /**
-     * Obtiene todos los comentarios de una receta específica.
-     *
-     * @param recetaId El ID de la receta.
-     * @return Una lista de comentarios para la receta dada.
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public Set<Comentario> obtenerComentariosDeReceta(Integer recetaId) {
-        Receta receta = recetaRepository.findById(recetaId)
-                .orElseThrow(() -> new IllegalArgumentException("Receta no encontrada"));
-        // La entidad Receta tiene un Set<Comentario> llamado 'comentarios'
-        return receta.getComentarios();
-    }
-
     @Override
     @Transactional
     public Receta agregarCategoria(Integer recetaId, Integer categoriaId) {
@@ -268,6 +454,15 @@ public class RecetaServiceImpl implements RecetaService {
         return recetaRepository.save(receta);
     }
 
+    /**
+     * Elimina una categoría de una receta.
+     *
+     * @param recetaId    ID de la receta.
+     * @param categoriaId ID de la categoría a eliminar.
+     * @return La receta actualizada.
+     * @throws RecetaNoEncontradaException    si la receta no existe.
+     * @throws CategoriaNoEncontradaException si la categoría no existe.
+     */
     @Override
     @Transactional
     public Receta eliminarCategoria(Integer recetaId, Integer categoriaId) {
@@ -279,4 +474,5 @@ public class RecetaServiceImpl implements RecetaService {
         receta.getCategorias().remove(categoria);
         return recetaRepository.save(receta);
     }
+
 }

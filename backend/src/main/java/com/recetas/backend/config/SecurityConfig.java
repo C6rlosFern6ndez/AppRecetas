@@ -2,6 +2,7 @@ package com.recetas.backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -16,6 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import com.recetas.backend.security.AuthEntryPointJwt;
 import com.recetas.backend.security.AuthTokenFilter;
+import com.recetas.backend.security.JwtUtils; // Importar JwtUtils
 
 /**
  * Configuración de seguridad para la aplicación.
@@ -27,36 +29,29 @@ public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
     private final AuthEntryPointJwt unauthorizedHandler;
+    private final JwtUtils jwtUtils; // Añadir JwtUtils como dependencia
 
     /**
      * Se utiliza inyección por constructor en lugar de @Autowired en campos.
      * Esto es una mejor práctica porque hace las dependencias obligatorias y
      * explícitas.
      */
-    public SecurityConfig(UserDetailsService userDetailsService, AuthEntryPointJwt unauthorizedHandler) {
+    public SecurityConfig(UserDetailsService userDetailsService, AuthEntryPointJwt unauthorizedHandler,
+            JwtUtils jwtUtils) {
         this.userDetailsService = userDetailsService;
         this.unauthorizedHandler = unauthorizedHandler;
+        this.jwtUtils = jwtUtils;
     }
 
     @Bean
     public AuthTokenFilter authenticationJwtTokenFilter() {
-        return new AuthTokenFilter();
+        return new AuthTokenFilter(jwtUtils, userDetailsService); // Pasar JwtUtils y UserDetailsService al constructor
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-
-    /**
-     * ✅ Se elimina el bean DaoAuthenticationProvider.
-     * Spring Security lo configurará automáticamente al encontrar un bean de
-     * UserDetailsService
-     * y otro de PasswordEncoder en el contexto de la aplicación.
-     * Esta es la forma más moderna y elimina las advertencias de métodos obsoletos.
-     */
-    // @Bean
-    // public DaoAuthenticationProvider authenticationProvider() { ... }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
@@ -77,15 +72,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**",
                                 "/webjars/**")
                         .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/recetas/**").permitAll()
                         .anyRequest().authenticated());
-
-        /*
-         * Ya no es necesario llamar a http.authenticationProvider().
-         * Al declarar el DaoAuthenticationProvider como un @Bean (o dejar que Spring lo
-         * haga),
-         * Spring lo detecta y lo integra en el proceso de autenticación
-         * automáticamente.
-         */
 
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 

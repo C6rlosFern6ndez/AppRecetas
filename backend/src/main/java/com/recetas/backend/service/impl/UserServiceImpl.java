@@ -68,12 +68,10 @@ public class UserServiceImpl implements UserService {
         usuario.setEmail(signupRequestDto.getEmail());
         usuario.setContrasena(passwordEncoder.encode(signupRequestDto.getContrasena()));
 
-        // Asignar rol por defecto (ej. ROLE_USER)
-        Rol rolUsuario = rolRepository.findByNombre("ROLE_USER")
+        // Asignar rol por defecto (ej. USER)
+        Rol rolUsuario = rolRepository.findByNombre("USER")
                 .orElseThrow(() -> new IllegalArgumentException("Rol por defecto no encontrado"));
-        Set<Rol> roles = new HashSet<>();
-        roles.add(rolUsuario);
-        usuario.setRoles(roles);
+        usuario.setRol(rolUsuario);
 
         return usuarioRepository.save(usuario);
     }

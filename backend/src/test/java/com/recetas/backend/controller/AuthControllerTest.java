@@ -19,13 +19,9 @@ import org.springframework.security.authentication.AuthenticationManager;
 import com.recetas.backend.exception.EmailAlreadyInUseException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
 class AuthControllerTest {
@@ -62,11 +58,9 @@ class AuthControllerTest {
         testUser.setNombreUsuario("testUser");
         testUser.setEmail("test@example.com");
         testUser.setContrasena("encodedPassword");
-        Set<Rol> roles = new HashSet<>();
         Rol userRole = new Rol();
-        userRole.setNombre("ROLE_USER");
-        roles.add(userRole);
-        testUser.setRoles(roles);
+        userRole.setNombre("USER");
+        testUser.setRol(userRole);
     }
 
     @Test
@@ -97,65 +91,34 @@ class AuthControllerTest {
 
     @Test
     void loginUser_success() {
-        // Mockear el comportamiento de userService para encontrar el usuario
-        when(userService.findByNombreUsuario(loginRequestDto.getNombreUsuarioOrEmail())).thenReturn(Optional.empty());
-        when(userService.findByEmail(loginRequestDto.getNombreUsuarioOrEmail())).thenReturn(Optional.of(testUser));
-
-        // Mockear la autenticación
         Authentication authentication = mock(Authentication.class);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
-
-        String jwt = "mock_jwt_token";
-        when(jwtUtils.generateJwtToken(authentication)).thenReturn(jwt);
+        when(jwtUtils.generateJwtToken(authentication)).thenReturn("mock_jwt_token");
 
         ResponseEntity<LoginResponseDto> response = authController.autenticarUsuario(loginRequestDto);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(jwt, response.getBody().getToken());
+        assertEquals("mock_jwt_token", response.getBody().getToken());
 
-        verify(userService, times(1)).findByNombreUsuario(loginRequestDto.getNombreUsuarioOrEmail());
-        verify(userService, times(1)).findByEmail(loginRequestDto.getNombreUsuarioOrEmail());
-        verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        verify(authenticationManager, times(1)).authenticate(
+                new UsernamePasswordAuthenticationToken(loginRequestDto.getNombreUsuarioOrEmail(),
+                        loginRequestDto.getContrasena()));
         verify(jwtUtils, times(1)).generateJwtToken(authentication);
     }
 
     @Test
-    void loginUser_userNotFound() {
-        when(userService.findByNombreUsuario(loginRequestDto.getNombreUsuarioOrEmail())).thenReturn(Optional.empty());
-        when(userService.findByEmail(loginRequestDto.getNombreUsuarioOrEmail())).thenReturn(Optional.empty());
+    void loginUser_invalidCredentials() {
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(new org.springframework.security.authentication.BadCredentialsException("Bad credentials"));
 
-        ResponseEntity<LoginResponseDto> response = authController.autenticarUsuario(loginRequestDto);
+        assertThrows(org.springframework.security.authentication.BadCredentialsException.class,
+                () -> authController.autenticarUsuario(loginRequestDto));
 
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals("Credenciales inválidas", response.getBody().getToken());
-
-        verify(userService, times(1)).findByNombreUsuario(loginRequestDto.getNombreUsuarioOrEmail());
-        verify(userService, times(1)).findByEmail(loginRequestDto.getNombreUsuarioOrEmail());
-        verifyNoInteractions(authenticationManager);
-        verifyNoInteractions(jwtUtils);
-    }
-
-    @Test
-    void loginUser_incorrectPassword() {
-        // Mockear el comportamiento de userService para encontrar el usuario
-        when(userService.findByNombreUsuario(loginRequestDto.getNombreUsuarioOrEmail())).thenReturn(Optional.empty());
-        when(userService.findByEmail(loginRequestDto.getNombreUsuarioOrEmail())).thenReturn(Optional.of(testUser));
-
-        // Mockear que la autenticación falla debido a credenciales incorrectas
-        given(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .willThrow(new org.springframework.security.authentication.BadCredentialsException("Bad credentials"));
-
-        org.springframework.security.authentication.BadCredentialsException exception = assertThrows(
-                org.springframework.security.authentication.BadCredentialsException.class, () -> {
-                    authController.autenticarUsuario(loginRequestDto);
-                });
-
-        assertEquals("Bad credentials", exception.getMessage());
-        verify(userService, times(1)).findByNombreUsuario(loginRequestDto.getNombreUsuarioOrEmail());
-        verify(userService, times(1)).findByEmail(loginRequestDto.getNombreUsuarioOrEmail());
-        verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        verify(authenticationManager, times(1)).authenticate(
+                new UsernamePasswordAuthenticationToken(loginRequestDto.getNombreUsuarioOrEmail(),
+                        loginRequestDto.getContrasena()));
         verifyNoInteractions(jwtUtils);
     }
 }

@@ -1,6 +1,5 @@
 package com.recetas.backend.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.recetas.backend.domain.entity.Usuario;
 import com.recetas.backend.domain.repository.UsuarioRepository;
 import com.recetas.backend.service.UserService;
@@ -25,8 +24,6 @@ import com.recetas.backend.domain.entity.Rol;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doNothing;
@@ -51,9 +48,6 @@ class UserControllerTest {
     @MockBean // Usar @MockBean
     private UsuarioRepository usuarioRepository;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     private Usuario testUserEntity;
     private Usuario followedUserEntity;
     private User testUserDetails;
@@ -65,21 +59,19 @@ class UserControllerTest {
         testUserEntity.setNombreUsuario("testuser");
         testUserEntity.setEmail("test@example.com");
         testUserEntity.setContrasena("password");
-        testUserEntity.setRoles(Set.of(new Rol(1, "ROLE_USER"))); // Asignar un rol al usuario de prueba
+        testUserEntity.setRol(new Rol(1, "USER")); // Asignar un rol al usuario de prueba
 
         followedUserEntity = new Usuario();
         followedUserEntity.setId(2);
         followedUserEntity.setNombreUsuario("followeduser");
         followedUserEntity.setEmail("followed@example.com");
         followedUserEntity.setContrasena("password");
-        followedUserEntity.setRoles(Set.of(new Rol(1, "ROLE_USER"))); // Asignar un rol al usuario seguido
+        followedUserEntity.setRol(new Rol(1, "USER")); // Asignar un rol al usuario seguido
 
         testUserDetails = new User(
                 testUserEntity.getNombreUsuario(),
                 testUserEntity.getContrasena(),
-                testUserEntity.getRoles().stream()
-                        .map(rol -> new SimpleGrantedAuthority(rol.getNombre()))
-                        .collect(Collectors.toList()));
+                java.util.List.of(new SimpleGrantedAuthority(testUserEntity.getRol().getNombre())));
     }
 
     @Test

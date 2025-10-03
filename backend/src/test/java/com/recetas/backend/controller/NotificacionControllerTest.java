@@ -1,6 +1,5 @@
 package com.recetas.backend.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.recetas.backend.domain.entity.Notificacion;
 import com.recetas.backend.domain.entity.Usuario;
 import com.recetas.backend.domain.model.enums.TipoNotificacion;
@@ -9,9 +8,10 @@ import com.recetas.backend.service.NotificacionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,22 +29,21 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(NotificacionController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class NotificacionControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @Mock
+    @MockBean
     private NotificacionService notificacionService;
 
-    @Mock
+    @MockBean
     private UsuarioRepository usuarioRepository;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     private Usuario testUser;
     private Notificacion notificacion1;
@@ -97,7 +96,7 @@ class NotificacionControllerTest {
     void marcarComoLeida_shouldReturnOkStatus() throws Exception {
         doNothing().when(notificacionService).marcarComoLeida(anyInt());
 
-        mockMvc.perform(post("/notificaciones/{id}/leida", 1)
+        mockMvc.perform(post("/notificaciones/{id}/leida", 1).with(csrf())
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }
@@ -108,7 +107,7 @@ class NotificacionControllerTest {
     void eliminarNotificacion_shouldReturnNoContentStatus() throws Exception {
         doNothing().when(notificacionService).eliminarNotificacion(anyInt());
 
-        mockMvc.perform(delete("/notificaciones/{id}", 1)
+        mockMvc.perform(delete("/notificaciones/{id}", 1).with(csrf())
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
     }

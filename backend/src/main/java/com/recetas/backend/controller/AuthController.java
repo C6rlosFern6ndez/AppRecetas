@@ -59,28 +59,14 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> autenticarUsuario(@Valid @RequestBody LoginRequestDto loginRequestDto) {
-        String usernameOrEmail = loginRequestDto.getNombreUsuarioOrEmail();
-        String password = loginRequestDto.getContrasena();
 
-        // Buscar el usuario por nombre de usuario o email
-        Usuario usuario = userService.findByNombreUsuario(usernameOrEmail)
-                .orElseGet(() -> userService.findByEmail(usernameOrEmail).orElse(null));
-
-        if (usuario == null) {
-            // Si el usuario no se encuentra, devolver un error de credenciales inválidas
-            // Esto es para evitar enumeración de usuarios.
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new LoginResponseDto("Credenciales inválidas"));
-        }
-
-        // Autenticar usando el email del usuario como principal, ya que
-        // Usuario.getUsername() devuelve el email.
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(usuario.getEmail(), password));
+                new UsernamePasswordAuthenticationToken(loginRequestDto.getNombreUsuarioOrEmail(),
+                        loginRequestDto.getContrasena()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtUtils.generateJwtToken(authentication);
 
-        // Devolver el token JWT en la respuesta
         return ResponseEntity.ok(new LoginResponseDto(jwt));
     }
 }
