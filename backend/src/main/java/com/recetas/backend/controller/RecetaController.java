@@ -6,8 +6,6 @@ import com.recetas.backend.domain.entity.Receta;
 import com.recetas.backend.domain.entity.Usuario;
 import com.recetas.backend.domain.model.enums.Dificultad;
 import com.recetas.backend.domain.repository.UsuarioRepository;
-import com.recetas.backend.exception.RecetaNoEncontradaException;
-import com.recetas.backend.exception.UsuarioNoEncontradoException;
 import com.recetas.backend.service.RecetaService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -47,10 +45,14 @@ public class RecetaController {
     @PostMapping
     public ResponseEntity<Receta> crearReceta(@Valid @RequestBody RecetaRequestDto recetaDto,
             @AuthenticationPrincipal Principal principal) {
-        Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
-                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
-        Receta nuevaReceta = recetaService.crearReceta(recetaDto, usuario.getId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(nuevaReceta);
+        try {
+            Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            Receta nuevaReceta = recetaService.crearReceta(recetaDto, usuario.getId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(nuevaReceta);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**
@@ -65,10 +67,14 @@ public class RecetaController {
     public ResponseEntity<Receta> actualizarReceta(@PathVariable Integer id,
             @Valid @RequestBody RecetaRequestDto recetaDto,
             @AuthenticationPrincipal Principal principal) {
-        Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
-                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
-        Receta recetaActualizada = recetaService.actualizarReceta(id, recetaDto, usuario.getId());
-        return ResponseEntity.ok(recetaActualizada);
+        try {
+            Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            Receta recetaActualizada = recetaService.actualizarReceta(id, recetaDto, usuario.getId());
+            return ResponseEntity.ok(recetaActualizada);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**
@@ -107,10 +113,14 @@ public class RecetaController {
     @PostMapping("/{recetaId}/like")
     public ResponseEntity<Void> darMeGusta(@PathVariable Integer recetaId,
             @AuthenticationPrincipal Principal principal) {
-        Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
-                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
-        recetaService.darMeGusta(usuario.getId(), recetaId);
-        return ResponseEntity.ok().build();
+        try {
+            Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            recetaService.darMeGusta(usuario.getId(), recetaId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**
@@ -123,10 +133,14 @@ public class RecetaController {
     @DeleteMapping("/{recetaId}/like")
     public ResponseEntity<Void> quitarMeGusta(@PathVariable Integer recetaId,
             @AuthenticationPrincipal Principal principal) {
-        Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
-                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
-        recetaService.quitarMeGusta(usuario.getId(), recetaId);
-        return ResponseEntity.ok().build();
+        try {
+            Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            recetaService.quitarMeGusta(usuario.getId(), recetaId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**
@@ -140,11 +154,15 @@ public class RecetaController {
     @PostMapping("/{recetaId}/comments")
     public ResponseEntity<Comentario> agregarComentario(@PathVariable Integer recetaId,
             @Valid @RequestBody Comentario comentario, @AuthenticationPrincipal Principal principal) {
-        Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
-                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
-        Comentario comentarioGuardado = recetaService.agregarComentario(recetaId, usuario.getId(),
-                comentario.getComentario());
-        return ResponseEntity.status(HttpStatus.CREATED).body(comentarioGuardado);
+        try {
+            Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            Comentario comentarioGuardado = recetaService.agregarComentario(recetaId, usuario.getId(),
+                    comentario.getComentario());
+            return ResponseEntity.status(HttpStatus.CREATED).body(comentarioGuardado);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**
@@ -218,10 +236,14 @@ public class RecetaController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminarReceta(@PathVariable Integer id,
             @AuthenticationPrincipal Principal principal) {
-        Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
-                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
-        recetaService.eliminarReceta(id, usuario.getId());
-        return ResponseEntity.noContent().build();
+        try {
+            Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            recetaService.eliminarReceta(id, usuario.getId());
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**
@@ -235,10 +257,14 @@ public class RecetaController {
     @PostMapping("/{recetaId}/calificar")
     public ResponseEntity<Void> calificarReceta(@PathVariable Integer recetaId,
             @RequestParam Integer puntuacion, @AuthenticationPrincipal Principal principal) {
-        Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
-                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
-        recetaService.calificarReceta(usuario.getId(), recetaId, puntuacion);
-        return ResponseEntity.ok().build();
+        try {
+            Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            recetaService.calificarReceta(usuario.getId(), recetaId, puntuacion);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**
@@ -251,10 +277,14 @@ public class RecetaController {
     @GetMapping("/{recetaId}/calificacion")
     public ResponseEntity<Integer> obtenerCalificacionDeReceta(@PathVariable Integer recetaId,
             @AuthenticationPrincipal Principal principal) {
-        Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
-                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
-        Integer calificacion = recetaService.obtenerCalificacionDeReceta(usuario.getId(), recetaId);
-        return ResponseEntity.ok(calificacion);
+        try {
+            Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            Integer calificacion = recetaService.obtenerCalificacionDeReceta(usuario.getId(), recetaId);
+            return ResponseEntity.ok(calificacion);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**

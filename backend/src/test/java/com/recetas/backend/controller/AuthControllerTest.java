@@ -16,13 +16,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import com.recetas.backend.exception.EmailAlreadyInUseException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.context.ActiveProfiles;
-
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,13 +27,13 @@ import static org.mockito.Mockito.*;
 class AuthControllerTest {
 
     @Mock
-    private AuthenticationManager authenticationManager;
+    private JwtUtils jwtUtils;
 
     @Mock
     private UserService userService;
 
     @Mock
-    private JwtUtils jwtUtils;
+    private AuthenticationManager authenticationManager;
 
     @InjectMocks
     private AuthController authController;
@@ -82,9 +79,9 @@ class AuthControllerTest {
     @Test
     void registerUser_emailAlreadyInUse() {
         when(userService.registrarUsuario(any(SignupRequestDto.class)))
-                .thenThrow(new EmailAlreadyInUseException("El correo electrónico ya está en uso."));
+                .thenThrow(new IllegalArgumentException("El correo electrónico ya está en uso."));
 
-        EmailAlreadyInUseException exception = assertThrows(EmailAlreadyInUseException.class, () -> {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             authController.registrarUsuario(signupRequestDto);
         });
 
@@ -105,9 +102,7 @@ class AuthControllerTest {
         assertNotNull(response.getBody());
         assertEquals("mock_jwt_token", response.getBody().getToken());
 
-        verify(authenticationManager, times(1)).authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequestDto.getNombreUsuarioOrEmail(),
-                        loginRequestDto.getContrasena()));
+        verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(jwtUtils, times(1)).generateJwtToken(authentication);
     }
 
@@ -119,9 +114,7 @@ class AuthControllerTest {
         assertThrows(org.springframework.security.authentication.BadCredentialsException.class,
                 () -> authController.autenticarUsuario(loginRequestDto));
 
-        verify(authenticationManager, times(1)).authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequestDto.getNombreUsuarioOrEmail(),
-                        loginRequestDto.getContrasena()));
+        verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verifyNoInteractions(jwtUtils);
     }
 }

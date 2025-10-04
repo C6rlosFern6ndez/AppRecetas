@@ -9,10 +9,9 @@ import com.recetas.backend.domain.repository.UsuarioRepository;
 import com.recetas.backend.domain.dto.SignupRequestDto;
 import com.recetas.backend.domain.entity.Rol;
 import com.recetas.backend.domain.model.enums.TipoNotificacion;
-import com.recetas.backend.exception.EmailAlreadyInUseException;
-import com.recetas.backend.exception.SeguimientoException;
-import com.recetas.backend.exception.UsuarioNoEncontradoException;
+
 import com.recetas.backend.service.NotificacionService;
+import java.lang.RuntimeException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,7 +26,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -98,7 +96,7 @@ class UserServiceImplTest {
     void seguirUsuario_seguidorNotFound() {
         when(usuarioRepository.findById(usuarioSeguidor.getId())).thenReturn(Optional.empty());
 
-        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.seguirUsuario(usuarioSeguidor.getId(), usuarioSeguido.getId()));
         assertEquals("Usuario seguidor no encontrado con id: 1", exception.getMessage());
     }
@@ -108,14 +106,14 @@ class UserServiceImplTest {
         when(usuarioRepository.findById(usuarioSeguidor.getId())).thenReturn(Optional.of(usuarioSeguidor));
         when(usuarioRepository.findById(usuarioSeguido.getId())).thenReturn(Optional.empty());
 
-        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.seguirUsuario(usuarioSeguidor.getId(), usuarioSeguido.getId()));
         assertEquals("Usuario seguido no encontrado con id: 2", exception.getMessage());
     }
 
     @Test
     void seguirUsuario_selfFollow() {
-        SeguimientoException exception = assertThrows(SeguimientoException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.seguirUsuario(usuarioSeguidor.getId(), usuarioSeguidor.getId()));
         assertEquals("Un usuario no puede seguirse a sí mismo.", exception.getMessage());
     }
@@ -128,7 +126,7 @@ class UserServiceImplTest {
                 usuarioSeguido.getId().longValue()))
                 .thenReturn(true);
 
-        SeguimientoException exception = assertThrows(SeguimientoException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.seguirUsuario(usuarioSeguidor.getId(), usuarioSeguido.getId()));
         assertEquals("Ya sigues a este usuario.", exception.getMessage());
     }
@@ -148,7 +146,7 @@ class UserServiceImplTest {
     void dejarDeSeguirUsuario_seguidorNotFound() {
         when(usuarioRepository.existsById(usuarioSeguidor.getId())).thenReturn(false);
 
-        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.dejarDeSeguirUsuario(usuarioSeguidor.getId(), usuarioSeguido.getId()));
         assertEquals("Usuario seguidor no encontrado con id: 1", exception.getMessage());
     }
@@ -158,7 +156,7 @@ class UserServiceImplTest {
         when(usuarioRepository.existsById(usuarioSeguidor.getId())).thenReturn(true);
         when(usuarioRepository.existsById(usuarioSeguido.getId())).thenReturn(false);
 
-        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.dejarDeSeguirUsuario(usuarioSeguidor.getId(), usuarioSeguido.getId()));
         assertEquals("Usuario seguido no encontrado con id: 2", exception.getMessage());
     }
@@ -169,7 +167,7 @@ class UserServiceImplTest {
         when(usuarioRepository.existsById(usuarioSeguido.getId())).thenReturn(true);
         when(seguidorRepository.existsById(seguidorId)).thenReturn(false);
 
-        SeguimientoException exception = assertThrows(SeguimientoException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.dejarDeSeguirUsuario(usuarioSeguidor.getId(), usuarioSeguido.getId()));
         assertEquals("No sigues a este usuario.", exception.getMessage());
     }
@@ -193,7 +191,7 @@ class UserServiceImplTest {
     void obtenerSeguidores_userNotFound() {
         when(usuarioRepository.findById(usuarioSeguido.getId())).thenReturn(Optional.empty());
 
-        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.obtenerSeguidores(usuarioSeguido.getId()));
         assertEquals("Usuario no encontrado con id: 2", exception.getMessage());
     }
@@ -228,7 +226,7 @@ class UserServiceImplTest {
     void obtenerSeguidos_userNotFound() {
         when(usuarioRepository.findById(usuarioSeguidor.getId())).thenReturn(Optional.empty());
 
-        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.obtenerSeguidos(usuarioSeguidor.getId()));
         assertEquals("Usuario no encontrado con id: 1", exception.getMessage());
     }
@@ -304,7 +302,7 @@ class UserServiceImplTest {
 
         when(usuarioRepository.findByEmail(signupRequestDto.getEmail())).thenReturn(Optional.of(new Usuario()));
 
-        EmailAlreadyInUseException exception = assertThrows(EmailAlreadyInUseException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> userService.registrarUsuario(signupRequestDto));
         assertEquals("El correo electrónico ya está en uso.", exception.getMessage());
         verify(usuarioRepository, never()).save(any(Usuario.class));

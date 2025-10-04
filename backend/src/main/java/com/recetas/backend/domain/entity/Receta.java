@@ -57,6 +57,9 @@ public class Receta {
     @Column(name = "url_imagen")
     private String urlImagen;
 
+    @Column(name = "delete_hash_imagen")
+    private String deleteHashImagen;
+
     @Column(name = "fecha_creacion", updatable = false)
     private LocalDateTime fechaCreacion = LocalDateTime.now();
 

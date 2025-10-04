@@ -4,7 +4,12 @@ import com.recetas.backend.domain.entity.Notificacion;
 import com.recetas.backend.domain.entity.Usuario;
 import com.recetas.backend.domain.model.enums.TipoNotificacion;
 import com.recetas.backend.domain.repository.UsuarioRepository;
+import com.recetas.backend.security.AuthEntryPointJwt;
+import com.recetas.backend.security.JwtUtils;
 import com.recetas.backend.service.NotificacionService;
+import com.recetas.backend.service.RecetaService;
+import com.recetas.backend.service.UserService;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,6 +18,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -42,10 +48,25 @@ class NotificacionControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private NotificacionService notificacionService;
+    private RecetaService recetaService;
 
     @MockBean
     private UsuarioRepository usuarioRepository;
+
+    @MockBean
+    private JwtUtils jwtUtils;
+
+    @MockBean
+    private UserDetailsService userDetailsService;
+
+    @MockBean
+    private AuthEntryPointJwt authEntryPointJwt;
+
+    @MockBean
+    private UserService userService;
+
+    @MockBean
+    private NotificacionService notificacionService;
 
     private Usuario testUser;
     private Notificacion notificacion1;

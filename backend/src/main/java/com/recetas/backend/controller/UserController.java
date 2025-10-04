@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.recetas.backend.domain.entity.Usuario;
 import com.recetas.backend.domain.repository.UsuarioRepository;
-import com.recetas.backend.exception.UsuarioNoEncontradoException;
 import com.recetas.backend.service.UserService;
 
 /**
@@ -38,12 +37,13 @@ public class UserController {
      * @param seguidoId   El ID del usuario que será seguido.
      * @param userDetails Los detalles del usuario autenticado.
      * @return ResponseEntity indicando el resultado de la operación.
+     * @throws Exception
      */
     @PostMapping("/{seguidoId}/follow")
     public ResponseEntity<Void> seguirUsuario(@PathVariable Integer seguidoId,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails) throws Exception {
         Usuario seguidor = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
-                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
+                .orElseThrow(() -> new Exception("Usuario no encontrado"));
         userService.seguirUsuario(seguidor.getId(), seguidoId);
         return ResponseEntity.ok().build();
     }
@@ -54,12 +54,13 @@ public class UserController {
      * @param seguidoId   El ID del usuario que se dejará de seguir.
      * @param userDetails Los detalles del usuario autenticado.
      * @return ResponseEntity indicando el resultado de la operación.
+     * @throws Exception
      */
     @DeleteMapping("/{seguidoId}/unfollow")
     public ResponseEntity<Void> dejarDeSeguirUsuario(@PathVariable Integer seguidoId,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails) throws Exception {
         Usuario seguidor = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
-                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
+                .orElseThrow(() -> new Exception("Usuario no encontrado"));
         userService.dejarDeSeguirUsuario(seguidor.getId(), seguidoId);
         return ResponseEntity.ok().build();
     }

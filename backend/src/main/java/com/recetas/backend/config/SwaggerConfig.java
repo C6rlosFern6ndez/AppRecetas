@@ -25,7 +25,7 @@ public class SwaggerConfig implements WebMvcConfigurer {
          * @return OpenAPI configurado.
          */
         @Bean
-        public OpenAPI customOpenAPI() {
+        OpenAPI customOpenAPI() {
                 return new OpenAPI()
                                 .info(new Info()
                                                 .title("API de Recetas")
@@ -41,7 +41,7 @@ public class SwaggerConfig implements WebMvcConfigurer {
          * @return GroupedOpenApi configurado.
          */
         @Bean
-        public GroupedOpenApi publicApi() {
+        GroupedOpenApi publicApi() {
                 return GroupedOpenApi.builder()
                                 .group("public-api") // Nombre del grupo
                                 .pathsToMatch("/api/**") // Rutas que incluirá este grupo

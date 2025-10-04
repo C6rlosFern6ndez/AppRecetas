@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.recetas.backend.domain.entity.Usuario;
 import com.recetas.backend.domain.repository.UsuarioRepository;
-import com.recetas.backend.exception.UsuarioNoEncontradoException;
 import com.recetas.backend.service.CalificacionService;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -44,16 +43,17 @@ public class CalificacionController {
      * @param puntuacion  La puntuación (ej. 1-5).
      * @param userDetails Los detalles del usuario autenticado.
      * @return Una respuesta vacía con estado 201 (CREATED) si es exitoso.
+     * @throws Exception
      */
     @PostMapping("/receta/{recetaId}")
     public ResponseEntity<Void> calificarReceta(
             @PathVariable Long recetaId,
             @RequestParam Integer puntuacion,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails) throws Exception {
 
         log.info("Petición para calificar la receta con ID: {} con una puntuación de: {}", recetaId, puntuacion);
         Usuario usuario = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
-                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
+                .orElseThrow(() -> new Exception("Usuario no encontrado"));
 
         calificacionService.calificarReceta(usuario.getId(), recetaId.intValue(), puntuacion);
 
@@ -67,15 +67,16 @@ public class CalificacionController {
      * @param recetaId    El ID de la receta cuya calificación se eliminará.
      * @param userDetails Los detalles del usuario autenticado.
      * @return Una respuesta vacía con estado 204 (NO CONTENT) si es exitoso.
+     * @throws Exception
      */
     @DeleteMapping("/receta/{recetaId}")
     public ResponseEntity<Void> eliminarCalificacion(
             @PathVariable Long recetaId,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails) throws Exception {
 
         log.info("Petición para eliminar la calificación de la receta con ID: {}", recetaId);
         Usuario usuario = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
-                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
+                .orElseThrow(() -> new Exception("Usuario no encontrado"));
 
         calificacionService.eliminarCalificacion(usuario.getId(), recetaId.intValue());
 

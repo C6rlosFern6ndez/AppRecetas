@@ -23,6 +23,7 @@ public class NotificacionServiceImpl implements NotificacionService {
     private final NotificacionRepository notificacionRepository;
     private final UsuarioRepository usuarioRepository;
     private final RecetaRepository recetaRepository;
+    public Usuario usuario;
 
     public NotificacionServiceImpl(NotificacionRepository notificacionRepository, UsuarioRepository usuarioRepository,
             RecetaRepository recetaRepository) {
@@ -34,7 +35,7 @@ public class NotificacionServiceImpl implements NotificacionService {
     @Override
     @Transactional
     public Notificacion crearNotificacion(Integer usuarioId, TipoNotificacion tipo, Integer emisorId, Long recetaId) {
-        Usuario usuario = usuarioRepository.findById(usuarioId)
+        usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario receptor no encontrado"));
         Usuario emisor = usuarioRepository.findById(emisorId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario emisor no encontrado"));
@@ -84,7 +85,7 @@ public class NotificacionServiceImpl implements NotificacionService {
         // y que la entidad Usuario tiene una relación OneToMany con Notificacion.
         // Si no es así, se debe buscar directamente por usuario_id en
         // NotificacionRepository.
-        Usuario usuario = usuarioRepository.findById(usuarioId)
+        usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
 
         // Si la entidad Usuario tiene una colección de notificaciones:

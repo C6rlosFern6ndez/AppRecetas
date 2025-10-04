@@ -2,11 +2,13 @@ package com.recetas.backend.controller;
 
 import com.recetas.backend.domain.entity.Usuario;
 import com.recetas.backend.domain.repository.UsuarioRepository;
+import com.recetas.backend.service.RecetaService;
 import com.recetas.backend.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import com.recetas.backend.config.SecurityConfig;
 import com.recetas.backend.security.AuthEntryPointJwt;
 import com.recetas.backend.security.JwtUtils;
@@ -17,6 +19,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -44,11 +47,23 @@ class UserControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean // Usar @MockBean
-    private UserService userService;
+    @MockBean
+    private RecetaService recetaService;
 
-    @MockBean // Usar @MockBean
+    @MockBean
     private UsuarioRepository usuarioRepository;
+
+    @MockBean
+    private JwtUtils jwtUtils;
+
+    @MockBean
+    private UserDetailsService userDetailsService;
+
+    @MockBean
+    private AuthEntryPointJwt authEntryPointJwt;
+
+    @MockBean
+    private UserService userService;
 
     private Usuario testUserEntity;
     private Usuario followedUserEntity;

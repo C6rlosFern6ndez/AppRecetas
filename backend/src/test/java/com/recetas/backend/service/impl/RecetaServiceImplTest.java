@@ -11,11 +11,7 @@ import com.recetas.backend.domain.repository.MeGustaRecetaRepository;
 import com.recetas.backend.domain.repository.RecetaRepository;
 import com.recetas.backend.domain.entity.Comentario;
 import com.recetas.backend.domain.repository.UsuarioRepository;
-import com.recetas.backend.exception.AccesoDenegadoException;
-import com.recetas.backend.exception.ComentarioException;
-import com.recetas.backend.exception.MeGustaException;
-import com.recetas.backend.exception.RecetaNoEncontradaException;
-import com.recetas.backend.exception.UsuarioNoEncontradoException;
+import java.lang.RuntimeException;
 import com.recetas.backend.service.ImageUploadService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,8 +23,6 @@ import com.recetas.backend.domain.entity.Categoria;
 import com.recetas.backend.domain.entity.Calificacion;
 import com.recetas.backend.domain.model.enums.Dificultad;
 import com.recetas.backend.domain.repository.CategoriaRepository;
-import com.recetas.backend.exception.CategoriaNoEncontradaException;
-import com.recetas.backend.exception.ImageUploadException;
 import com.recetas.backend.service.NotificacionService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -39,14 +33,15 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -131,7 +126,11 @@ class RecetaServiceImplTest {
     void crearReceta_success() {
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
         when(categoriaRepository.findById(categoria.getId())).thenReturn(Optional.of(categoria));
-        when(recetaRepository.save(any(Receta.class))).thenReturn(receta);
+        when(recetaRepository.save(any(Receta.class))).thenAnswer(invocation -> {
+            Receta savedReceta = invocation.getArgument(0);
+            savedReceta.setId(receta.getId()); // Asignar un ID para simular el guardado
+            return savedReceta;
+        });
 
         Receta result = recetaService.crearReceta(recetaRequestDto, usuario.getId());
 
@@ -145,8 +144,9 @@ class RecetaServiceImplTest {
     void crearReceta_usuarioNotFound() {
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.empty());
 
-        assertThrows(UsuarioNoEncontradoException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.crearReceta(recetaRequestDto, usuario.getId()));
+        assertEquals("Usuario no encontrado con id: 1", exception.getMessage());
     }
 
     @Test
@@ -154,8 +154,9 @@ class RecetaServiceImplTest {
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
         when(categoriaRepository.findById(anyInt())).thenReturn(Optional.empty());
 
-        assertThrows(CategoriaNoEncontradaException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.crearReceta(recetaRequestDto, usuario.getId()));
+        assertEquals("Categoría no encontrada con id: 1", exception.getMessage());
     }
 
     @Test
@@ -187,8 +188,9 @@ class RecetaServiceImplTest {
     void actualizarReceta_recetaNotFound() {
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.empty());
 
-        assertThrows(RecetaNoEncontradaException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.actualizarReceta(receta.getId(), recetaRequestDto, usuario.getId()));
+        assertEquals("Receta no encontrada con ID: 10", exception.getMessage());
     }
 
     @Test
@@ -197,8 +199,9 @@ class RecetaServiceImplTest {
         otroUsuario.setId(2);
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
 
-        assertThrows(AccesoDenegadoException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.actualizarReceta(receta.getId(), recetaRequestDto, otroUsuario.getId()));
+        assertEquals("No tienes permiso para actualizar esta receta.", exception.getMessage());
     }
 
     @Test
@@ -207,25 +210,32 @@ class RecetaServiceImplTest {
         when(categoriaRepository.findById(anyInt())).thenReturn(Optional.empty());
         recetaRequestDto.setCategoriaIds(new HashSet<>(Arrays.asList(99))); // Categoría inexistente
 
-        assertThrows(CategoriaNoEncontradaException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.actualizarReceta(receta.getId(), recetaRequestDto, usuario.getId()));
+        assertEquals("Categoría no encontrada con id: 99", exception.getMessage());
     }
 
     @Test
     void subirImagenReceta_success() throws Exception {
         MockMultipartFile mockFile = new MockMultipartFile("file", "test.jpg", "image/jpeg", "some-image".getBytes());
         String expectedUrl = "http://imgbb.com/test.jpg";
+        String expectedDeleteHash = "delete123";
+
+        Map<String, String> uploadResult = new HashMap<>();
+        uploadResult.put("url", expectedUrl);
+        uploadResult.put("deleteHash", expectedDeleteHash);
 
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
         when(imageUploadService.uploadImage(any(MultipartFile.class), anyString(), anyString()))
-                .thenReturn(expectedUrl);
+                .thenReturn(uploadResult);
         when(recetaRepository.save(any(Receta.class))).thenReturn(receta);
 
         String resultUrl = recetaService.subirImagenReceta(receta.getId(), mockFile);
 
         assertEquals(expectedUrl, resultUrl);
         assertEquals(expectedUrl, receta.getUrlImagen());
-        verify(imageUploadService, times(1)).uploadImage(eq(mockFile), eq("Postres"), eq("TestReceta"));
+        assertEquals(expectedDeleteHash, receta.getDeleteHashImagen());
+        verify(imageUploadService, times(1)).uploadImage(eq(mockFile), eq("Postres"), eq("Test Receta"));
         verify(recetaRepository, times(1)).save(receta);
     }
 
@@ -234,8 +244,9 @@ class RecetaServiceImplTest {
         MockMultipartFile mockFile = new MockMultipartFile("file", "test.jpg", "image/jpeg", "some-image".getBytes());
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.empty());
 
-        assertThrows(RecetaNoEncontradaException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.subirImagenReceta(receta.getId(), mockFile));
+        assertEquals("Receta no encontrada con ID: 10", exception.getMessage());
     }
 
     @Test
@@ -243,20 +254,59 @@ class RecetaServiceImplTest {
         MockMultipartFile mockFile = new MockMultipartFile("file", "test.jpg", "image/jpeg", "some-image".getBytes());
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
         when(imageUploadService.uploadImage(any(MultipartFile.class), anyString(), anyString()))
-                .thenThrow(new ImageUploadException("Error de subida"));
+                .thenThrow(new RuntimeException("Error de subida"));
 
-        assertThrows(ImageUploadException.class, () -> recetaService.subirImagenReceta(receta.getId(), mockFile));
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> recetaService.subirImagenReceta(receta.getId(), mockFile));
+        assertEquals("Error al subir la imagen para la receta 10: Error de subida", exception.getMessage());
     }
 
     @Test
     void eliminarImagenReceta_success() {
         receta.setUrlImagen("http://imgbb.com/old_image.jpg");
+        receta.setDeleteHashImagen("delete123");
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
         when(recetaRepository.save(any(Receta.class))).thenReturn(receta);
 
         assertDoesNotThrow(() -> recetaService.eliminarImagenReceta(receta.getId()));
 
         assertNull(receta.getUrlImagen());
+        assertNull(receta.getDeleteHashImagen());
+        verify(recetaRepository, times(1)).save(receta);
+    }
+
+    @Test
+    void eliminarImagenReceta_withDeleteHash_success() throws Exception {
+        receta.setUrlImagen("http://imgbb.com/old_image.jpg");
+        receta.setDeleteHashImagen("delete123");
+        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
+        doNothing().when(imageUploadService).deleteImage("delete123");
+        when(recetaRepository.save(any(Receta.class))).thenReturn(receta);
+
+        assertDoesNotThrow(() -> recetaService.eliminarImagenReceta(receta.getId()));
+
+        assertNull(receta.getUrlImagen());
+        assertNull(receta.getDeleteHashImagen());
+        verify(imageUploadService, times(1)).deleteImage("delete123");
+        verify(recetaRepository, times(1)).save(receta);
+    }
+
+    @Test
+    void eliminarImagenReceta_imgbbDeleteFails() throws Exception {
+        receta.setUrlImagen("http://imgbb.com/old_image.jpg");
+        receta.setDeleteHashImagen("delete123");
+        when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
+        doThrow(new RuntimeException("Error al eliminar de imgbb")).when(imageUploadService)
+                .deleteImage("delete123");
+        when(recetaRepository.save(any(Receta.class))).thenReturn(receta);
+
+        assertDoesNotThrow(() -> recetaService.eliminarImagenReceta(receta.getId()));
+
+        // Aunque falle la eliminación en imgbb, las referencias locales deben
+        // eliminarse
+        assertNull(receta.getUrlImagen());
+        assertNull(receta.getDeleteHashImagen());
+        verify(imageUploadService, times(1)).deleteImage("delete123");
         verify(recetaRepository, times(1)).save(receta);
     }
 
@@ -264,7 +314,9 @@ class RecetaServiceImplTest {
     void eliminarImagenReceta_recetaNotFound() {
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.empty());
 
-        assertThrows(RecetaNoEncontradaException.class, () -> recetaService.eliminarImagenReceta(receta.getId()));
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> recetaService.eliminarImagenReceta(receta.getId()));
+        assertEquals("Receta no encontrada con ID: 10", exception.getMessage());
     }
 
     @Test
@@ -286,7 +338,7 @@ class RecetaServiceImplTest {
     void darMeGusta_usuarioNotFound() {
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.empty());
 
-        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.darMeGusta(usuario.getId(), receta.getId()));
         assertEquals("Usuario no encontrado con id: 1", exception.getMessage());
     }
@@ -296,7 +348,7 @@ class RecetaServiceImplTest {
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.empty());
 
-        RecetaNoEncontradaException exception = assertThrows(RecetaNoEncontradaException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.darMeGusta(usuario.getId(), receta.getId()));
         assertEquals("Receta no encontrada con id: 10", exception.getMessage());
     }
@@ -308,7 +360,7 @@ class RecetaServiceImplTest {
         when(meGustaRecetaRepository.existsById_UsuarioIdAndId_RecetaId(usuario.getId(), receta.getId()))
                 .thenReturn(true);
 
-        MeGustaException exception = assertThrows(MeGustaException.class,
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> recetaService.darMeGusta(usuario.getId(), receta.getId()));
         assertEquals("Ya has dado 'me gusta' a esta receta.", exception.getMessage());
     }
@@ -330,7 +382,7 @@ class RecetaServiceImplTest {
         when(recetaRepository.existsById(receta.getId())).thenReturn(true);
         when(meGustaRecetaRepository.existsById(meGustaRecetaId)).thenReturn(false);
 
-        MeGustaException exception = assertThrows(MeGustaException.class,
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> recetaService.quitarMeGusta(usuario.getId(), receta.getId()));
         assertEquals("No has dado 'me gusta' a esta receta.", exception.getMessage());
     }
@@ -353,7 +405,7 @@ class RecetaServiceImplTest {
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
 
-        ComentarioException exception = assertThrows(ComentarioException.class,
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> recetaService.agregarComentario(receta.getId(), usuario.getId(), " "));
         assertEquals("El comentario no puede estar vacío.", exception.getMessage());
     }
@@ -362,7 +414,7 @@ class RecetaServiceImplTest {
     void agregarComentario_usuarioNotFound() {
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.empty());
 
-        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.agregarComentario(receta.getId(), usuario.getId(), "Test comentario"));
         assertEquals("Usuario no encontrado con id: 1", exception.getMessage());
     }
@@ -372,7 +424,7 @@ class RecetaServiceImplTest {
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.empty());
 
-        RecetaNoEncontradaException exception = assertThrows(RecetaNoEncontradaException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.agregarComentario(receta.getId(), usuario.getId(), "Test comentario"));
         assertEquals("Receta no encontrada con ID: 10", exception.getMessage());
     }
@@ -395,7 +447,7 @@ class RecetaServiceImplTest {
     void obtenerComentariosDeReceta_recetaNotFound() {
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.empty());
 
-        assertThrows(RecetaNoEncontradaException.class, () -> recetaService.obtenerComentariosDeReceta(receta.getId()));
+        assertThrows(RuntimeException.class, () -> recetaService.obtenerComentariosDeReceta(receta.getId()));
     }
 
     @Test
@@ -412,7 +464,7 @@ class RecetaServiceImplTest {
     void obtenerRecetaOExcepcion_notFound() {
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.empty());
 
-        assertThrows(RecetaNoEncontradaException.class, () -> recetaService.obtenerRecetaOExcepcion(receta.getId()));
+        assertThrows(RuntimeException.class, () -> recetaService.obtenerRecetaOExcepcion(receta.getId()));
     }
 
     @Test
@@ -461,7 +513,7 @@ class RecetaServiceImplTest {
     void eliminarReceta_recetaNotFound() {
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.empty());
 
-        assertThrows(RecetaNoEncontradaException.class,
+        assertThrows(RuntimeException.class,
                 () -> recetaService.eliminarReceta(receta.getId(), usuario.getId()));
     }
 
@@ -471,7 +523,7 @@ class RecetaServiceImplTest {
         otroUsuario.setId(2);
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
 
-        assertThrows(AccesoDenegadoException.class,
+        assertThrows(IllegalStateException.class,
                 () -> recetaService.eliminarReceta(receta.getId(), otroUsuario.getId()));
     }
 
@@ -511,7 +563,7 @@ class RecetaServiceImplTest {
     void calificarReceta_usuarioNotFound() {
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.empty());
 
-        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.calificarReceta(usuario.getId(), receta.getId(), 4));
         assertEquals("Usuario no encontrado con id: 1", exception.getMessage());
     }
@@ -521,7 +573,7 @@ class RecetaServiceImplTest {
         when(usuarioRepository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.empty());
 
-        RecetaNoEncontradaException exception = assertThrows(RecetaNoEncontradaException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.calificarReceta(usuario.getId(), receta.getId(), 4));
         assertEquals("Receta no encontrada con id: 10", exception.getMessage());
     }
@@ -558,7 +610,7 @@ class RecetaServiceImplTest {
     void obtenerCalificacionDeReceta_usuarioNotFound() {
         when(usuarioRepository.existsById(usuario.getId())).thenReturn(false);
 
-        UsuarioNoEncontradoException exception = assertThrows(UsuarioNoEncontradoException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.obtenerCalificacionDeReceta(usuario.getId(), receta.getId()));
         assertEquals("Usuario no encontrado con id: 1", exception.getMessage());
     }
@@ -568,7 +620,7 @@ class RecetaServiceImplTest {
         when(usuarioRepository.existsById(usuario.getId())).thenReturn(true);
         when(recetaRepository.existsById(receta.getId())).thenReturn(false);
 
-        RecetaNoEncontradaException exception = assertThrows(RecetaNoEncontradaException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.obtenerCalificacionDeReceta(usuario.getId(), receta.getId()));
         assertEquals("Receta no encontrada con id: 10", exception.getMessage());
     }
@@ -602,7 +654,7 @@ class RecetaServiceImplTest {
     void agregarCategoria_recetaNotFound() {
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.empty());
 
-        RecetaNoEncontradaException exception = assertThrows(RecetaNoEncontradaException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.agregarCategoria(receta.getId(), categoria.getId()));
         assertEquals("Receta no encontrada con id: " + receta.getId(), exception.getMessage());
     }
@@ -612,7 +664,7 @@ class RecetaServiceImplTest {
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
         when(categoriaRepository.findById(categoria.getId())).thenReturn(Optional.empty());
 
-        CategoriaNoEncontradaException exception = assertThrows(CategoriaNoEncontradaException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.agregarCategoria(receta.getId(), categoria.getId()));
         assertEquals("Categoria no encontrada con id: " + categoria.getId(), exception.getMessage());
     }
@@ -635,7 +687,7 @@ class RecetaServiceImplTest {
     void eliminarCategoria_recetaNotFound() {
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.empty());
 
-        RecetaNoEncontradaException exception = assertThrows(RecetaNoEncontradaException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.eliminarCategoria(receta.getId(), categoria.getId()));
         assertEquals("Receta no encontrada con id: " + receta.getId(), exception.getMessage());
     }
@@ -645,7 +697,7 @@ class RecetaServiceImplTest {
         when(recetaRepository.findById(receta.getId())).thenReturn(Optional.of(receta));
         when(categoriaRepository.findById(categoria.getId())).thenReturn(Optional.empty());
 
-        CategoriaNoEncontradaException exception = assertThrows(CategoriaNoEncontradaException.class,
+        RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> recetaService.eliminarCategoria(receta.getId(), categoria.getId()));
         assertEquals("Categoria no encontrada con id: " + categoria.getId(), exception.getMessage());
     }

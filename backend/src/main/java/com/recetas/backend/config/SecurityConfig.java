@@ -41,17 +41,17 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthTokenFilter authenticationJwtTokenFilter(UserDetailsService userDetailsService) {
+    AuthTokenFilter authenticationJwtTokenFilter(UserDetailsService userDetailsService) {
         return new AuthTokenFilter(jwtUtils, userDetailsService); // Pasar JwtUtils y UserDetailsService al constructor
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
+    PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+    AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
 
@@ -59,7 +59,7 @@ public class SecurityConfig {
      * Bean para configurar la cadena de filtros de seguridad.
      */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, UserDetailsService userDetailsService) throws Exception {
+    SecurityFilterChain filterChain(HttpSecurity http, UserDetailsService userDetailsService) throws Exception {
         http.cors(cors -> cors.disable())
                 .csrf(csrf -> csrf.disable())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))

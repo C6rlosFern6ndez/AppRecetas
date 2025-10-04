@@ -1,31 +1,25 @@
 package com.recetas.backend.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.recetas.backend.exception.ImageUploadException;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,9 +28,6 @@ class ImageUploadServiceTest {
 
     @Mock
     private RestTemplate restTemplate;
-
-    @Mock
-    private ImageService imageService;
 
     @Mock
     private MultipartFile mockFile;
@@ -55,8 +46,8 @@ class ImageUploadServiceTest {
     }
 
     @Test
-    @DisplayName("Subir imagen exitosamente y guardar en DB")
-    void uploadImage_successAndSaveToDb() throws IOException, ImageUploadException {
+    @DisplayName("Subir imagen exitosamente")
+    void uploadImage_success() throws Exception {
         String imageUrl = "http://imgbb.com/uploaded_image.jpg";
         String deleteHash = "some_delete_hash";
         String imgbbResponse = "{\"data\":{\"id\":\"abc\",\"title\":\"test\",\"url\":\"" + imageUrl
@@ -76,13 +67,12 @@ class ImageUploadServiceTest {
                 any(HttpEntity.class),
                 eq(String.class)))
                 .thenReturn(new ResponseEntity<>(imgbbResponse, HttpStatus.OK));
-        when(imageService.saveImage(imageUrl, deleteHash))
-                .thenReturn(new com.recetas.backend.domain.entity.Image(imageUrl, deleteHash));
 
-        String resultUrl = imageUploadService.uploadImage(mockFile, "Category", "RecipeTitle");
+        Map<String, String> result = imageUploadService.uploadImage(mockFile, "Vegetariano", "EspinacasconGarbanzos");
 
-        assertEquals(imageUrl, resultUrl);
-        verify(imageService, times(1)).saveImage(imageUrl, deleteHash);
+        assertNotNull(result);
+        assertEquals(imageUrl, result.get("url"));
+        assertEquals(deleteHash, result.get("deleteHash"));
         verify(restTemplate, times(1)).exchange(eq("https://api.imgbb.com/1/upload"), eq(HttpMethod.POST),
                 any(HttpEntity.class), eq(String.class));
     }
@@ -101,12 +91,38 @@ class ImageUploadServiceTest {
                 eq(String.class)))
                 .thenReturn(new ResponseEntity<>(imgbbResponse, HttpStatus.OK));
 
-        ImageUploadException exception = assertThrows(ImageUploadException.class, () -> {
-            imageUploadService.uploadImage(mockFile, "Category", "RecipeTitle");
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            imageUploadService.uploadImage(mockFile, "Vegetariano", "EspinacasconGarbanzos");
         });
 
-        assertTrue(exception.getMessage().contains("La respuesta de imgbb no contiene la URL de la imagen"));
-        verify(imageService, never()).saveImage(anyString(), anyString());
+        assertTrue(exception.getMessage()
+                .contains("Error: La respuesta de imgbb no contiene la URL o el delete_hash de la imagen"));
+        assertTrue(exception.getMessage()
+                .contains("Respuesta completa:"));
+    }
+
+    @Test
+    @DisplayName("Fallar al subir imagen - respuesta imgbb sin deleteHash")
+    void uploadImage_imgbbResponseMissingDeleteHash_throwsException() throws IOException {
+        String imageUrl = "http://imgbb.com/uploaded_image.jpg";
+        String imgbbResponse = "{\"data\":{\"id\":\"abc\",\"title\":\"test\",\"url\":\"" + imageUrl
+                + "\"},\"success\":true,\"status\":200}";
+
+        when(mockFile.getOriginalFilename()).thenReturn("test.jpg");
+        when(mockFile.getBytes()).thenReturn("test image content".getBytes());
+        when(restTemplate.exchange(
+                eq("https://api.imgbb.com/1/upload"),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(String.class)))
+                .thenReturn(new ResponseEntity<>(imgbbResponse, HttpStatus.OK));
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            imageUploadService.uploadImage(mockFile, "Vegetariano", "EspinacasconGarbanzos");
+        });
+
+        assertTrue(exception.getMessage()
+                .contains("Error: La respuesta de imgbb no contiene la URL o el delete_hash de la imagen"));
     }
 
     @Test
@@ -123,17 +139,17 @@ class ImageUploadServiceTest {
                 eq(String.class)))
                 .thenReturn(new ResponseEntity<>(imgbbResponse, HttpStatus.BAD_REQUEST));
 
-        ImageUploadException exception = assertThrows(ImageUploadException.class, () -> {
-            imageUploadService.uploadImage(mockFile, "Category", "RecipeTitle");
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            imageUploadService.uploadImage(mockFile, "Vegetariano", "EspinacasconGarbanzos");
         });
 
         assertTrue(exception.getMessage().contains("Error al subir la imagen a imgbb. Código de estado: 400"));
-        verify(imageService, never()).saveImage(anyString(), anyString());
+        assertTrue(exception.getMessage().contains("Cuerpo de la respuesta:"));
     }
 
     @Test
-    @DisplayName("Eliminar imagen exitosamente de imgbb y DB")
-    void deleteImage_success() throws IOException, ImageUploadException {
+    @DisplayName("Eliminar imagen exitosamente de imgbb")
+    void deleteImage_success() throws Exception {
         String deleteHash = "some_delete_hash";
         String imgbbResponse = "{\"data\":{\"status\":200,\"id\":\"abc\",\"title\":\"test\",\"url\":\"http://imgbb.com/uploaded_image.jpg\",\"display_url\":\"http://imgbb.com/uploaded_image.jpg\",\"size\":\"1234\",\"time\":\"123456789\",\"expiration\":\"0\",\"deletehash\":\""
                 + deleteHash + "\"},\"success\":true,\"status\":200}";
@@ -144,11 +160,9 @@ class ImageUploadServiceTest {
                 any(HttpEntity.class),
                 eq(String.class)))
                 .thenReturn(new ResponseEntity<>(imgbbResponse, HttpStatus.OK));
-        doNothing().when(imageService).deleteImageByDeleteHash(deleteHash);
 
         imageUploadService.deleteImage(deleteHash);
 
-        verify(imageService, times(1)).deleteImageByDeleteHash(deleteHash);
         verify(restTemplate, times(1)).exchange(contains("/delete/" + deleteHash), eq(HttpMethod.DELETE),
                 any(HttpEntity.class), eq(String.class));
     }
@@ -166,29 +180,53 @@ class ImageUploadServiceTest {
                 eq(String.class)))
                 .thenReturn(new ResponseEntity<>(imgbbResponse, HttpStatus.BAD_REQUEST));
 
-        ImageUploadException exception = assertThrows(ImageUploadException.class, () -> {
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             imageUploadService.deleteImage(deleteHash);
         });
 
         assertTrue(exception.getMessage().contains("Error al eliminar la imagen de imgbb. Código de estado: 400"));
-        verify(imageService, never()).deleteImageByDeleteHash(anyString());
+        assertTrue(exception.getMessage().contains("Cuerpo de la respuesta:"));
     }
 
     @Test
-    @DisplayName("Listar todas las URLs de imágenes exitosamente")
-    void listAllImageUrls_success() {
-        com.recetas.backend.domain.entity.Image img1 = new com.recetas.backend.domain.entity.Image("url1", "hash1");
-        com.recetas.backend.domain.entity.Image img2 = new com.recetas.backend.domain.entity.Image("url2", "hash2");
-        List<com.recetas.backend.domain.entity.Image> images = Arrays.asList(img1, img2);
+    @DisplayName("Fallar al eliminar imagen - deleteHash nulo")
+    void deleteImage_nullDeleteHash_throwsException() {
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            imageUploadService.deleteImage(null);
+        });
 
-        when(imageService.getAllImages()).thenReturn(images);
+        assertTrue(exception.getMessage().contains("El deleteHash no puede ser nulo o vacío"));
+    }
 
-        List<String> resultUrls = imageUploadService.listAllImageUrls();
+    @Test
+    @DisplayName("Fallar al eliminar imagen - deleteHash vacío")
+    void deleteImage_emptyDeleteHash_throwsException() {
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            imageUploadService.deleteImage("");
+        });
 
-        assertNotNull(resultUrls);
-        assertEquals(2, resultUrls.size());
-        assertTrue(resultUrls.contains("url1"));
-        assertTrue(resultUrls.contains("url2"));
-        verify(imageService, times(1)).getAllImages();
+        assertTrue(exception.getMessage().contains("El deleteHash no puede ser nulo o vacío"));
+    }
+
+    @Test
+    @DisplayName("Fallar al subir imagen - archivo nulo")
+    void uploadImage_nullFile_throwsException() {
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            imageUploadService.uploadImage(null, "Category", "RecipeTitle");
+        });
+
+        assertTrue(exception.getMessage().contains("El archivo de imagen no puede ser nulo o vacío"));
+    }
+
+    @Test
+    @DisplayName("Fallar al subir imagen - archivo vacío")
+    void uploadImage_emptyFile_throwsException() throws IOException {
+        when(mockFile.isEmpty()).thenReturn(true);
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            imageUploadService.uploadImage(mockFile, "Vegetariano", "EspinacasconGarbanzos");
+        });
+
+        assertTrue(exception.getMessage().contains("El archivo de imagen no puede ser nulo o vacío"));
     }
 }

@@ -18,6 +18,7 @@ public interface RecetaMapper {
     @Mapping(target = "comentarios", ignore = true)
     @Mapping(target = "calificaciones", ignore = true)
     @Mapping(target = "meGustas", ignore = true)
+    @Mapping(target = "deleteHashImagen", ignore = true) // Se maneja automáticamente con la subida de imágenes
     Receta toEntity(RecetaRequestDto dto);
 
     @Mapping(target = "id", ignore = true)
@@ -29,5 +30,6 @@ public interface RecetaMapper {
     @Mapping(target = "comentarios", ignore = true)
     @Mapping(target = "calificaciones", ignore = true)
     @Mapping(target = "meGustas", ignore = true)
+    @Mapping(target = "deleteHashImagen", ignore = true) // Se maneja automáticamente con la subida de imágenes
     void updateEntityFromDto(RecetaRequestDto dto, @MappingTarget Receta entity);
 }

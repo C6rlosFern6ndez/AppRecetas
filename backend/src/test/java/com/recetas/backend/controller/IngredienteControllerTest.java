@@ -2,7 +2,14 @@ package com.recetas.backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.recetas.backend.domain.entity.Ingrediente;
+import com.recetas.backend.domain.repository.UsuarioRepository;
+import com.recetas.backend.security.AuthEntryPointJwt;
+import com.recetas.backend.security.JwtUtils;
 import com.recetas.backend.service.IngredienteService;
+import com.recetas.backend.service.NotificacionService;
+import com.recetas.backend.service.RecetaService;
+import com.recetas.backend.service.UserService;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,6 +18,7 @@ import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfi
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -35,6 +43,27 @@ class IngredienteControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockBean
+    private RecetaService recetaService;
+
+    @MockBean
+    private UsuarioRepository usuarioRepository;
+
+    @MockBean
+    private JwtUtils jwtUtils;
+
+    @MockBean
+    private UserDetailsService userDetailsService;
+
+    @MockBean
+    private AuthEntryPointJwt authEntryPointJwt;
+
+    @MockBean
+    private UserService userService;
+
+    @MockBean
+    private NotificacionService notificacionService;
 
     @MockBean
     private IngredienteService ingredienteService;

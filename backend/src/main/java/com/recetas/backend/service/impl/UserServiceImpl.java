@@ -17,9 +17,6 @@ import com.recetas.backend.domain.repository.RolRepository;
 import com.recetas.backend.domain.repository.SeguidorRepository;
 import com.recetas.backend.domain.model.enums.TipoNotificacion;
 import com.recetas.backend.domain.repository.UsuarioRepository;
-import com.recetas.backend.exception.EmailAlreadyInUseException;
-import com.recetas.backend.exception.SeguimientoException;
-import com.recetas.backend.exception.UsuarioNoEncontradoException;
 import com.recetas.backend.service.NotificacionService;
 import com.recetas.backend.service.UserService;
 
@@ -59,7 +56,7 @@ public class UserServiceImpl implements UserService {
     public Usuario registrarUsuario(SignupRequestDto signupRequestDto) {
         // Verificar si el correo electrónico ya está en uso
         if (usuarioRepository.findByEmail(signupRequestDto.getEmail()).isPresent()) {
-            throw new EmailAlreadyInUseException("El correo electrónico ya está en uso.");
+            throw new IllegalArgumentException("El correo electrónico ya está en uso.");
         }
 
         // Crear un nuevo usuario
@@ -127,19 +124,19 @@ public class UserServiceImpl implements UserService {
     public void seguirUsuario(Integer seguidorId, Integer seguidoId) {
         // Comprobar que un usuario no puede seguirse a si mismo
         if (seguidorId.equals(seguidoId)) {
-            throw new SeguimientoException("Un usuario no puede seguirse a sí mismo.");
+            throw new IllegalArgumentException("Un usuario no puede seguirse a sí mismo.");
         }
         // Comprobar que los usuarios existen
         Usuario seguidor = usuarioRepository.findById(seguidorId)
                 .orElseThrow(
-                        () -> new UsuarioNoEncontradoException("Usuario seguidor no encontrado con id: " + seguidorId));
+                        () -> new RuntimeException("Usuario seguidor no encontrado con id: " + seguidorId));
         Usuario seguido = usuarioRepository.findById(seguidoId)
                 .orElseThrow(
-                        () -> new UsuarioNoEncontradoException("Usuario seguido no encontrado con id: " + seguidoId));
+                        () -> new RuntimeException("Usuario seguido no encontrado con id: " + seguidoId));
 
         // Comprobar si ya le sigue
         if (seguidorRepository.existsById_SeguidorIdAndId_SeguidoId(seguidorId.longValue(), seguidoId.longValue())) {
-            throw new SeguimientoException("Ya sigues a este usuario.");
+            throw new IllegalStateException("Ya sigues a este usuario.");
         }
 
         SeguidorId id = new SeguidorId(seguidorId, seguidoId);
@@ -162,17 +159,17 @@ public class UserServiceImpl implements UserService {
     public void dejarDeSeguirUsuario(Integer seguidorId, Integer seguidoId) {
         // Comprobar que los usuarios existen
         if (!usuarioRepository.existsById(seguidorId)) {
-            throw new UsuarioNoEncontradoException("Usuario seguidor no encontrado con id: " + seguidorId);
+            throw new RuntimeException("Usuario seguidor no encontrado con id: " + seguidorId);
         }
         if (!usuarioRepository.existsById(seguidoId)) {
-            throw new UsuarioNoEncontradoException("Usuario seguido no encontrado con id: " + seguidoId);
+            throw new RuntimeException("Usuario seguido no encontrado con id: " + seguidoId);
         }
 
         SeguidorId id = new SeguidorId(seguidorId, seguidoId);
 
         // Comprobar si ya le sigue
         if (!seguidorRepository.existsById(id)) {
-            throw new SeguimientoException("No sigues a este usuario.");
+            throw new IllegalStateException("No sigues a este usuario.");
         }
 
         seguidorRepository.deleteById(id);
@@ -188,7 +185,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public Set<Usuario> obtenerSeguidores(Integer userId) {
         Usuario usuario = usuarioRepository.findById(userId)
-                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado con id: " + userId));
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con id: " + userId));
 
         Set<Usuario> seguidores = new HashSet<>();
         if (usuario.getSeguidores() != null) {
@@ -209,7 +206,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public Set<Usuario> obtenerSeguidos(Integer userId) {
         Usuario usuario = usuarioRepository.findById(userId)
-                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado con id: " + userId));
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con id: " + userId));
 
         Set<Usuario> seguidos = new HashSet<>();
         if (usuario.getSeguidos() != null) {
