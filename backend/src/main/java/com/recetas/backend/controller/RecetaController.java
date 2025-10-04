@@ -13,11 +13,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails; // Importar UserDetails
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.security.Principal;
 import java.util.Set;
 
 /**
@@ -39,14 +39,14 @@ public class RecetaController {
     /**
      * Crea una nueva receta.
      *
-     * @param recetaDto DTO con los datos de la receta.
-     * @param principal El usuario autenticado.
+     * @param recetaDto   DTO con los datos de la receta.
+     * @param userDetails Los detalles del usuario autenticado.
      * @return ResponseEntity con la receta creada.
      */
     @PostMapping
     public ResponseEntity<Receta> crearReceta(@Valid @RequestBody RecetaRequestDto recetaDto,
-            @AuthenticationPrincipal Principal principal) {
-        Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Usuario usuario = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         try {
             Receta nuevaReceta = recetaService.crearReceta(recetaDto, usuario.getId());
@@ -62,16 +62,16 @@ public class RecetaController {
     /**
      * Actualiza una receta existente.
      *
-     * @param id        ID de la receta a actualizar.
-     * @param recetaDto DTO con los datos actualizados de la receta.
-     * @param principal El usuario autenticado.
+     * @param id          ID de la receta a actualizar.
+     * @param recetaDto   DTO con los datos actualizados de la receta.
+     * @param userDetails Los detalles del usuario autenticado.
      * @return ResponseEntity con la receta actualizada.
      */
     @PutMapping("/{id}")
     public ResponseEntity<Receta> actualizarReceta(@PathVariable Integer id,
             @Valid @RequestBody RecetaRequestDto recetaDto,
-            @AuthenticationPrincipal Principal principal) {
-        Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Usuario usuario = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         try {
             Receta recetaActualizada = recetaService.actualizarReceta(id, recetaDto, usuario.getId());
@@ -116,14 +116,14 @@ public class RecetaController {
     /**
      * Permite a un usuario dar "me gusta" a una receta.
      *
-     * @param recetaId  El ID de la receta a la que se da "me gusta".
-     * @param principal El usuario autenticado.
+     * @param recetaId    El ID de la receta a la que se da "me gusta".
+     * @param userDetails Los detalles del usuario autenticado.
      * @return ResponseEntity indicando el resultado de la operación.
      */
     @PostMapping("/{recetaId}/like")
     public ResponseEntity<Void> darMeGusta(@PathVariable Integer recetaId,
-            @AuthenticationPrincipal Principal principal) {
-        Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Usuario usuario = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         try {
             recetaService.darMeGusta(usuario.getId(), recetaId);
@@ -142,14 +142,14 @@ public class RecetaController {
     /**
      * Permite a un usuario quitar el "me gusta" de una receta.
      *
-     * @param recetaId  El ID de la receta a la que se quita el "me gusta".
-     * @param principal El usuario autenticado.
+     * @param recetaId    El ID de la receta a la que se quita el "me gusta".
+     * @param userDetails Los detalles del usuario autenticado.
      * @return ResponseEntity indicando el resultado de la operación.
      */
     @DeleteMapping("/{recetaId}/like")
     public ResponseEntity<Void> quitarMeGusta(@PathVariable Integer recetaId,
-            @AuthenticationPrincipal Principal principal) {
-        Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Usuario usuario = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         try {
             recetaService.quitarMeGusta(usuario.getId(), recetaId);
@@ -168,15 +168,15 @@ public class RecetaController {
     /**
      * Añade un comentario a una receta.
      *
-     * @param recetaId   El ID de la receta a la que se añade el comentario.
-     * @param comentario El objeto Comentario a añadir (solo se usa el texto).
-     * @param principal  El usuario autenticado.
+     * @param recetaId    El ID de la receta a la que se añade el comentario.
+     * @param comentario  El objeto Comentario a añadir (solo se usa el texto).
+     * @param userDetails Los detalles del usuario autenticado.
      * @return ResponseEntity con el comentario guardado o un código de error.
      */
     @PostMapping("/{recetaId}/comments")
     public ResponseEntity<Comentario> agregarComentario(@PathVariable Integer recetaId,
-            @Valid @RequestBody Comentario comentario, @AuthenticationPrincipal Principal principal) {
-        Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
+            @Valid @RequestBody Comentario comentario, @AuthenticationPrincipal UserDetails userDetails) {
+        Usuario usuario = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         try {
             Comentario comentarioGuardado = recetaService.agregarComentario(recetaId, usuario.getId(),
@@ -264,14 +264,14 @@ public class RecetaController {
     /**
      * Elimina una receta.
      *
-     * @param id        ID de la receta a eliminar.
-     * @param principal El usuario autenticado.
+     * @param id          ID de la receta a eliminar.
+     * @param userDetails Los detalles del usuario autenticado.
      * @return ResponseEntity sin contenido.
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminarReceta(@PathVariable Integer id,
-            @AuthenticationPrincipal Principal principal) {
-        Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Usuario usuario = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         try {
             recetaService.eliminarReceta(id, usuario.getId());
@@ -290,15 +290,15 @@ public class RecetaController {
     /**
      * Califica una receta.
      *
-     * @param recetaId   ID de la receta a calificar.
-     * @param puntuacion La puntuación (1-5).
-     * @param principal  El usuario autenticado.
+     * @param recetaId    ID de la receta a calificar.
+     * @param puntuacion  La puntuación (1-5).
+     * @param userDetails Los detalles del usuario autenticado.
      * @return ResponseEntity sin contenido.
      */
     @PostMapping("/{recetaId}/calificar")
     public ResponseEntity<Void> calificarReceta(@PathVariable Integer recetaId,
-            @RequestParam Integer puntuacion, @AuthenticationPrincipal Principal principal) {
-        Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
+            @RequestParam Integer puntuacion, @AuthenticationPrincipal UserDetails userDetails) {
+        Usuario usuario = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         try {
             recetaService.calificarReceta(usuario.getId(), recetaId, puntuacion);
@@ -317,14 +317,14 @@ public class RecetaController {
     /**
      * Obtiene la calificación de una receta por un usuario.
      *
-     * @param recetaId  ID de la receta.
-     * @param principal El usuario autenticado.
+     * @param recetaId    ID de la receta.
+     * @param userDetails Los detalles del usuario autenticado.
      * @return ResponseEntity con la calificación o null si no existe.
      */
     @GetMapping("/{recetaId}/calificacion")
     public ResponseEntity<Integer> obtenerCalificacionDeReceta(@PathVariable Integer recetaId,
-            @AuthenticationPrincipal Principal principal) {
-        Usuario usuario = usuarioRepository.findByNombreUsuario(principal.getName())
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Usuario usuario = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         try {
             Integer calificacion = recetaService.obtenerCalificacionDeReceta(usuario.getId(), recetaId);

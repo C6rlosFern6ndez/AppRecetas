@@ -38,17 +38,20 @@ import java.util.Arrays; // Importar Arrays
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print; // Importar print
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.recetas.backend.config.SecurityConfig;
+import com.recetas.backend.config.TestWebConfig; // Importar TestWebConfig
 
 @WebMvcTest(RecetaController.class)
 @AutoConfigureMockMvc
-@Import(SecurityConfig.class)
+@Import({ SecurityConfig.class, TestWebConfig.class }) // Importar SecurityConfig y TestWebConfig
 @ActiveProfiles("test")
-@WithMockUser(username = "testuser")
 class RecetaControllerTest {
 
         @Autowired
@@ -132,6 +135,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería crear una receta")
+        @WithMockUser(username = "testuser")
         void crearReceta_shouldReturnCreatedReceta() throws Exception {
                 when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 when(recetaService.crearReceta(any(RecetaRequestDto.class), eq(testUser.getId())))
@@ -147,6 +151,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería devolver 404 si el usuario no es encontrado al crear receta")
+        @WithMockUser(username = "testuser")
         void crearReceta_shouldReturnNotFoundIfUserNotFound() throws Exception {
                 when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.empty());
 
@@ -159,6 +164,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería actualizar una receta")
+        @WithMockUser(username = "testuser")
         void actualizarReceta_shouldReturnUpdatedReceta() throws Exception {
                 Receta updatedReceta = new Receta();
                 updatedReceta.setId(1);
@@ -178,6 +184,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería devolver 404 si la receta a actualizar no es encontrada")
+        @WithMockUser(username = "testuser")
         void actualizarReceta_shouldReturnNotFoundIfRecetaNotFound() throws Exception {
                 when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 when(recetaService.actualizarReceta(eq(99), any(RecetaRequestDto.class), eq(testUser.getId())))
@@ -207,6 +214,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería subir una imagen para una receta")
+        @WithMockUser(username = "testuser")
         void subirImagenReceta_shouldReturnImageUrl() throws Exception {
                 MockMultipartFile file = new MockMultipartFile("file", "test.jpg", MediaType.IMAGE_JPEG_VALUE,
                                 "some-image".getBytes());
@@ -214,7 +222,6 @@ class RecetaControllerTest {
 
                 when(recetaService.subirImagenReceta(eq(1), any(MultipartFile.class))).thenReturn(imageUrl);
 
-                // Ya tenía .with(csrf()), se mantiene.
                 mockMvc.perform(multipart("/api/recetas/{recetaId}/imagen", 1)
                                 .file(file)
                                 .with(csrf()))
@@ -224,10 +231,10 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería eliminar una imagen de una receta")
+        @WithMockUser(username = "testuser")
         void eliminarImagenReceta_shouldReturnNoContent() throws Exception {
                 doNothing().when(recetaService).eliminarImagenReceta(eq(1));
 
-                // Ya tenía .with(csrf()), se mantiene.
                 mockMvc.perform(delete("/api/recetas/{recetaId}/imagen", 1)
                                 .with(csrf()))
                                 .andExpect(status().isNoContent());
@@ -235,6 +242,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería dar 'me gusta' a una receta")
+        @WithMockUser(username = "testuser")
         void darMeGusta_shouldReturnOkStatus() throws Exception {
                 when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 doNothing().when(recetaService).darMeGusta(eq(testUser.getId()), eq(1));
@@ -246,6 +254,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería devolver 404 si el usuario no es encontrado al dar 'me gusta'")
+        @WithMockUser(username = "testuser")
         void darMeGusta_shouldReturnNotFoundIfUserNotFound() throws Exception {
                 when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.empty());
 
@@ -256,6 +265,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería quitar el 'me gusta' de una receta")
+        @WithMockUser(username = "testuser")
         void quitarMeGusta_shouldReturnOkStatus() throws Exception {
                 when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 doNothing().when(recetaService).quitarMeGusta(eq(testUser.getId()), eq(1));
@@ -267,6 +277,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería devolver 404 si el usuario no es encontrado al quitar 'me gusta'")
+        @WithMockUser(username = "testuser")
         void quitarMeGusta_shouldReturnNotFoundIfUserNotFound() throws Exception {
                 when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.empty());
 
@@ -277,6 +288,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería agregar un comentario a una receta")
+        @WithMockUser(username = "testuser")
         void agregarComentario_shouldReturnCreatedComment() throws Exception {
                 Comentario newComentario = new Comentario();
                 newComentario.setComentario("¡Qué rica receta!");
@@ -295,6 +307,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería devolver 404 si el usuario no es encontrado al agregar comentario")
+        @WithMockUser(username = "testuser")
         void agregarComentario_shouldReturnNotFoundIfUserNotFound() throws Exception {
                 Comentario newComentario = new Comentario();
                 newComentario.setComentario("¡Qué rica receta!");
@@ -310,6 +323,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería obtener comentarios de una receta")
+        @WithMockUser(username = "testuser")
         void obtenerComentariosDeReceta_shouldReturnListOfComments() throws Exception {
                 Comentario comentario1 = new Comentario();
                 comentario1.setId(1);
@@ -329,6 +343,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería obtener una receta por ID")
+        @WithMockUser(username = "testuser")
         void obtenerRecetaPorId_shouldReturnReceta() throws Exception {
                 when(recetaService.obtenerRecetaOExcepcion(anyInt())).thenReturn(testReceta);
 
@@ -340,6 +355,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería devolver 404 si la receta no es encontrada por ID")
+        @WithMockUser(username = "testuser")
         void obtenerRecetaPorId_shouldReturnNotFound() throws Exception {
                 when(recetaService.obtenerRecetaOExcepcion(anyInt()))
                                 .thenThrow(new RuntimeException("Receta no encontrada con ID: 99"));
@@ -351,6 +367,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería obtener todas las recetas paginadas")
+        @WithMockUser(username = "testuser")
         void obtenerTodasLasRecetas_shouldReturnPagedRecetas() throws Exception {
                 Pageable pageable = PageRequest.of(0, 10);
                 PageImpl<Receta> page = new PageImpl<>(Collections.singletonList(testReceta), pageable, 1);
@@ -365,14 +382,47 @@ class RecetaControllerTest {
                                 .andExpect(jsonPath("$.content[0].titulo").value("Receta de Prueba"));
         }
 
+        // @Test
+        // @DisplayName("Debería buscar recetas por criterios")
+        // @WithMockUser(username = "testuser")
+        // void buscarRecetas_shouldReturnPagedRecetas() throws Exception {
+        // Pageable pageable = PageRequest.of(0, 10);
+        // // Asegurarse de que el mock devuelva una PageImpl con contenido real
+        // Page<Receta> page = new PageImpl<>(Collections.singletonList(testReceta),
+        // pageable, 1);
+        // when(recetaService.buscarRecetas(any(String.class), any(String.class),
+        // any(Dificultad.class),
+        // any(Integer.class), any(String.class),
+        // any(Pageable.class))).thenReturn(page);
+
+        // mockMvc.perform(get("/api/recetas/search")
+        // .param("titulo", "Prueba")
+        // .param("dificultad", "FACIL")
+        // .param("page", "0")
+        // .param("size", "10")
+        // .contentType(MediaType.APPLICATION_JSON))
+        // .andDo(print()) // Imprimir la respuesta para depuración
+        // .andExpect(status().isOk())
+        // .andExpect(jsonPath("$.content.size()").value(1))
+        // .andExpect(jsonPath("$.content[0].titulo").value("Receta de Prueba"));
+        // }
+
         @Test
         @DisplayName("Debería buscar recetas por criterios")
+        @WithMockUser(username = "testuser")
         void buscarRecetas_shouldReturnPagedRecetas() throws Exception {
                 Pageable pageable = PageRequest.of(0, 10);
-                // Asegurarse de que el mock devuelva una PageImpl con contenido real
                 Page<Receta> page = new PageImpl<>(Collections.singletonList(testReceta), pageable, 1);
-                when(recetaService.buscarRecetas(any(String.class), any(String.class), any(Dificultad.class),
-                                any(Integer.class), any(String.class), any(Pageable.class))).thenReturn(page);
+
+                // CORRECCIÓN: Usa nullable() para los parámetros opcionales
+                when(recetaService.buscarRecetas(
+                                any(String.class), // titulo
+                                nullable(String.class), // ingredienteNombre
+                                any(Dificultad.class), // dificultad
+                                nullable(Integer.class), // tiempoPreparacionMax
+                                nullable(String.class), // categoriaNombre
+                                any(Pageable.class) // pageable
+                )).thenReturn(page);
 
                 mockMvc.perform(get("/api/recetas/search")
                                 .param("titulo", "Prueba")
@@ -387,6 +437,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería eliminar una receta")
+        @WithMockUser(username = "testuser")
         void eliminarReceta_shouldReturnNoContent() throws Exception {
                 when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 doNothing().when(recetaService).eliminarReceta(eq(1), eq(testUser.getId()));
@@ -397,6 +448,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería devolver 404 si la receta a eliminar no es encontrada")
+        @WithMockUser(username = "testuser")
         void eliminarReceta_shouldReturnNotFoundIfRecetaNotFound() throws Exception {
                 when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 doThrow(new RuntimeException("Receta no encontrada con ID: 99")).when(recetaService)
@@ -421,6 +473,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería calificar una receta")
+        @WithMockUser(username = "testuser")
         void calificarReceta_shouldReturnOkStatus() throws Exception {
                 when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 doNothing().when(recetaService).calificarReceta(eq(testUser.getId()), eq(1), eq(5));
@@ -433,6 +486,7 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería obtener la calificación de una receta")
+        @WithMockUser(username = "testuser")
         void obtenerCalificacionDeReceta_shouldReturnRating() throws Exception {
                 when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 when(recetaService.obtenerCalificacionDeReceta(eq(testUser.getId()), eq(1))).thenReturn(4);
@@ -444,22 +498,24 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería agregar una categoría a una receta")
+        @WithMockUser(username = "testuser")
         void agregarCategoria_shouldReturnUpdatedReceta() throws Exception {
                 when(recetaService.agregarCategoria(eq(1), eq(101))).thenReturn(testReceta);
 
                 mockMvc.perform(post("/api/recetas/{recetaId}/categorias/{categoriaId}", 1, 101)
-                                .with(csrf())) // Ya tenía .with(csrf()), se mantiene.
+                                .with(csrf()))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.id").value(testReceta.getId()));
         }
 
         @Test
         @DisplayName("Debería eliminar una categoría de una receta")
+        @WithMockUser(username = "testuser")
         void eliminarCategoria_shouldReturnUpdatedReceta() throws Exception {
                 when(recetaService.eliminarCategoria(eq(1), eq(101))).thenReturn(testReceta);
 
                 mockMvc.perform(delete("/api/recetas/{recetaId}/categorias/{categoriaId}", 1, 101)
-                                .with(csrf())) // Ya tenía .with(csrf()), se mantiene.
+                                .with(csrf()))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.id").value(testReceta.getId()));
         }
