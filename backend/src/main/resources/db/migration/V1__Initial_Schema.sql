@@ -160,6 +160,11 @@ CREATE TABLE notificaciones (
 -- DATOS DE PRUEBA PARA TESTING
 -- ============================================================================
 
+-- Insertar usuarios de prueba
+INSERT INTO `usuarios` (`id`, `nombre_usuario`, `email`, `contrasena`, `url_foto_perfil`, `delete_hash_perfil`, `fecha_registro`, `rol_id`) VALUES
+(1, 'chef_master', 'chef@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeEwHH1CnhCQRVvJDBY8jLnN1kKkHkV.z6', 'https://i.ibb.co/hF5n4tKK/default-avatar.png', 'test_delete_hash_1', NOW(), 1),
+(2, 'food_lover', 'foodlover@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeEwHH1CnhCQRVvJDBY8jLnN1kKkHkV.z6', 'https://i.ibb.co/hF5n4tKK/default-avatar.png', NULL, NOW(), 1),
+(3, 'admin_user', 'admin@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeEwHH1CnhCQRVvJDBY8jLnN1kKkHkV.z6', 'https://i.ibb.co/hF5n4tKK/default-avatar.png', NULL, NOW(), 4);
 
 -- Insertar ingredientes de prueba
 INSERT INTO `ingredientes` (`id`, `nombre`) VALUES
