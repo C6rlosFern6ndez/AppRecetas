@@ -19,19 +19,18 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private UsuarioRepository usuarioRepository;
 
     /**
-     * Carga los detalles del usuario por su nombre de usuario o email.
+     * Carga los detalles del usuario por su email.
      *
-     * @param usernameOrEmail El nombre de usuario o email del usuario.
+     * @param email El email del usuario.
      * @return Los detalles del usuario.
      * @throws UsernameNotFoundException Si el usuario no es encontrado.
      */
     @Override
     @Transactional
-    public UserDetails loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {
-        // Intentar buscar por nombre de usuario primero, luego por email
-        return usuarioRepository.findByNombreUsuario(usernameOrEmail)
-                .or(() -> usuarioRepository.findByEmail(usernameOrEmail))
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+
+        return usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException(
-                        "Usuario no encontrado con el nombre de usuario o email: " + usernameOrEmail));
+                        "Usuario no encontrado con el email: " + email));
     }
 }

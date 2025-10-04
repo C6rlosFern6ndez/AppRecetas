@@ -54,14 +54,14 @@ public class AuthController {
     /**
      * Endpoint para el inicio de sesión de usuarios.
      *
-     * @param loginRequestDto DTO con las credenciales del usuario.
+     * @param loginRequestDto DTO con las credenciales del usuario (email).
      * @return ResponseEntity con el token JWT o un mensaje de error.
      */
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> autenticarUsuario(@Valid @RequestBody LoginRequestDto loginRequestDto) {
 
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequestDto.getNombreUsuarioOrEmail(),
+                new UsernamePasswordAuthenticationToken(loginRequestDto.getEmail(),
                         loginRequestDto.getContrasena()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);

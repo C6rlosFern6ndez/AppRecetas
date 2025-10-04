@@ -50,7 +50,7 @@ class AuthControllerTest {
         signupRequestDto.setContrasena("password");
 
         loginRequestDto = new LoginRequestDto();
-        loginRequestDto.setNombreUsuarioOrEmail("test@example.com");
+        loginRequestDto.setEmail("test@example.com");
         loginRequestDto.setContrasena("password");
 
         testUser = new Usuario();
