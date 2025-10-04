@@ -2,6 +2,7 @@ package com.recetas.backend.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -13,6 +14,11 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
@@ -35,6 +41,44 @@ class ImageUploadServiceTest {
         ReflectionTestUtils.setField(imageUploadService, "restTemplate", restTemplate);
         ReflectionTestUtils.setField(imageUploadService, "objectMapper", objectMapper);
         ReflectionTestUtils.setField(imageUploadService, "imgbbApiKey", "test_api_key");
+    }
+
+    /**
+     * Test para uploadImage exitoso con parámetros válidos.
+     */
+    @Test
+    void uploadImage_Success_WithValidParameters() throws Exception {
+        // Configurar mocks
+        when(mockFile.isEmpty()).thenReturn(false);
+        when(mockFile.getOriginalFilename()).thenReturn("test.png");
+        when(mockFile.getBytes()).thenReturn("fake_image_data".getBytes());
+
+        // Respuesta simulada de imgbb
+        String mockResponseJson = """
+                {
+                    "data": {
+                        "url": "https://i.ibb.co/example/test.png",
+                        "deletehash": "deletehash123"
+                    },
+                    "success": true
+                }
+                """;
+
+        when(restTemplate.exchange(
+                eq("https://api.imgbb.com/1/upload"),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(String.class)))
+                .thenReturn(new ResponseEntity<>(mockResponseJson, HttpStatus.OK));
+
+        // Ejecutar el método
+        Map<String, String> result = imageUploadService.uploadImage(mockFile, "Categoria", "Título Receta");
+
+        // Verificar resultados
+        assertNotNull(result);
+        assertEquals("https://i.ibb.co/example/test.png", result.get("url"));
+        assertEquals("deletehash123", result.get("deleteHash"));
+        verify(restTemplate).exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class));
     }
 
     public void deleteImage(String deleteHash) throws Exception {
