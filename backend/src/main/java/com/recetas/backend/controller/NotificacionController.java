@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import com.recetas.backend.domain.entity.Notificacion;
 import com.recetas.backend.domain.entity.Usuario;
@@ -35,11 +37,10 @@ public class NotificacionController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Notificacion>> obtenerNotificaciones(@AuthenticationPrincipal UserDetails userDetails)
-            throws Exception {
+    public ResponseEntity<List<Notificacion>> obtenerNotificaciones(@AuthenticationPrincipal UserDetails userDetails) {
         log.info("Petición para obtener las notificaciones del usuario: {}", userDetails.getUsername());
         Usuario usuario = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
-                .orElseThrow(() -> new Exception("Usuario no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         List<Notificacion> notificaciones = notificacionService.obtenerNotificacionesUsuario(usuario.getId());
         log.info("Se han encontrado {} notificaciones para el usuario: {}", notificaciones.size(),
                 userDetails.getUsername());

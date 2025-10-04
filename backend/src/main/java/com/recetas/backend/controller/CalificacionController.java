@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.recetas.backend.domain.entity.Usuario;
 import com.recetas.backend.domain.repository.UsuarioRepository;
@@ -49,11 +50,11 @@ public class CalificacionController {
     public ResponseEntity<Void> calificarReceta(
             @PathVariable Long recetaId,
             @RequestParam Integer puntuacion,
-            @AuthenticationPrincipal UserDetails userDetails) throws Exception {
+            @AuthenticationPrincipal UserDetails userDetails) {
 
         log.info("Petición para calificar la receta con ID: {} con una puntuación de: {}", recetaId, puntuacion);
         Usuario usuario = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
-                .orElseThrow(() -> new Exception("Usuario no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
         calificacionService.calificarReceta(usuario.getId(), recetaId.intValue(), puntuacion);
 
@@ -72,11 +73,11 @@ public class CalificacionController {
     @DeleteMapping("/receta/{recetaId}")
     public ResponseEntity<Void> eliminarCalificacion(
             @PathVariable Long recetaId,
-            @AuthenticationPrincipal UserDetails userDetails) throws Exception {
+            @AuthenticationPrincipal UserDetails userDetails) {
 
         log.info("Petición para eliminar la calificación de la receta con ID: {}", recetaId);
         Usuario usuario = usuarioRepository.findByNombreUsuario(userDetails.getUsername())
-                .orElseThrow(() -> new Exception("Usuario no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
         calificacionService.eliminarCalificacion(usuario.getId(), recetaId.intValue());
 

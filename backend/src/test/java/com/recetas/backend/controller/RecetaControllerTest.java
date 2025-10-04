@@ -48,6 +48,7 @@ import com.recetas.backend.config.SecurityConfig;
 @AutoConfigureMockMvc
 @Import(SecurityConfig.class)
 @ActiveProfiles("test")
+@WithMockUser(username = "testuser")
 class RecetaControllerTest {
 
         @Autowired
@@ -131,20 +132,13 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería crear una receta")
-        @WithMockUser(username = "testuser", roles = { "USER" })
         void crearReceta_shouldReturnCreatedReceta() throws Exception {
-                when(usuarioRepository.findByNombreUsuario(eq("testuser"))).thenReturn(Optional.of(testUser)); // Especificar
-                                                                                                               // el
-                                                                                                               // nombre
-                                                                                                               // de
-                                                                                                               // usuario
+                when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 when(recetaService.crearReceta(any(RecetaRequestDto.class), eq(testUser.getId())))
                                 .thenReturn(testReceta);
 
                 mockMvc.perform(post("/api/recetas")
-                                // REMOVIDO: .with(user("testuser").roles("USER")) (Redundante con
-                                // @WithMockUser)
-                                .with(csrf()) // AÑADIDO: Necesario para peticiones POST, PUT, DELETE
+                                .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(testRecetaRequestDto)))
                                 .andExpect(status().isCreated())
@@ -152,47 +146,30 @@ class RecetaControllerTest {
         }
 
         @Test
-        @DisplayName("Debería devolver 500 si el usuario no es encontrado al crear receta")
-        @WithMockUser(username = "testuser", roles = { "USER" })
+        @DisplayName("Debería devolver 404 si el usuario no es encontrado al crear receta")
         void crearReceta_shouldReturnNotFoundIfUserNotFound() throws Exception {
-                when(usuarioRepository.findByNombreUsuario(eq("testuser"))).thenReturn(Optional.empty()); // Especificar
-                                                                                                          // el nombre
-                                                                                                          // de usuario
+                when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.empty());
 
                 mockMvc.perform(post("/api/recetas")
-                                // REMOVIDO: .with(user("testuser").roles("USER"))
-                                .with(csrf()) // AÑADIDO: Necesario para peticiones POST, PUT, DELETE
+                                .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(testRecetaRequestDto)))
-                                .andExpect(status().isInternalServerError());
+                                .andExpect(status().isNotFound());
         }
 
         @Test
         @DisplayName("Debería actualizar una receta")
-        @WithMockUser(username = "testuser", roles = { "USER" })
         void actualizarReceta_shouldReturnUpdatedReceta() throws Exception {
                 Receta updatedReceta = new Receta();
                 updatedReceta.setId(1);
                 updatedReceta.setTitulo("Receta Actualizada");
-                updatedReceta.setDescripcion("Descripción actualizada");
-                updatedReceta.setUsuario(testUser);
-                updatedReceta.setFechaCreacion(LocalDateTime.now());
-                updatedReceta.setDificultad(Dificultad.MEDIA);
-                updatedReceta.setTiempoPreparacion(40);
-                updatedReceta.setPorciones(5);
-                updatedReceta.setUrlImagen("http://example.com/updated_image.jpg");
 
-                when(usuarioRepository.findByNombreUsuario(eq("testuser"))).thenReturn(Optional.of(testUser)); // Especificar
-                                                                                                               // el
-                                                                                                               // nombre
-                                                                                                               // de
-                                                                                                               // usuario
+                when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 when(recetaService.actualizarReceta(eq(1), any(RecetaRequestDto.class), eq(testUser.getId())))
                                 .thenReturn(updatedReceta);
 
                 mockMvc.perform(put("/api/recetas/{id}", 1)
-                                // REMOVIDO: .with(user("testuser").roles("USER"))
-                                .with(csrf()) // AÑADIDO: Necesario para peticiones POST, PUT, DELETE
+                                .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(testRecetaRequestDto)))
                                 .andExpect(status().isOk())
@@ -201,19 +178,13 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería devolver 404 si la receta a actualizar no es encontrada")
-        @WithMockUser(username = "testuser", roles = { "USER" })
         void actualizarReceta_shouldReturnNotFoundIfRecetaNotFound() throws Exception {
-                when(usuarioRepository.findByNombreUsuario(eq("testuser"))).thenReturn(Optional.of(testUser)); // Especificar
-                                                                                                               // el
-                                                                                                               // nombre
-                                                                                                               // de
-                                                                                                               // usuario
+                when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 when(recetaService.actualizarReceta(eq(99), any(RecetaRequestDto.class), eq(testUser.getId())))
-                                .thenThrow(new Exception("Receta no encontrada"));
+                                .thenThrow(new RuntimeException("Receta no encontrada con ID: 99"));
 
                 mockMvc.perform(put("/api/recetas/{id}", 99)
-                                // REMOVIDO: .with(user("testuser").roles("USER"))
-                                .with(csrf()) // AÑADIDO: Necesario para peticiones POST, PUT, DELETE
+                                .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(testRecetaRequestDto)))
                                 .andExpect(status().isNotFound());
@@ -221,17 +192,14 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería devolver 403 si el usuario no es el propietario de la receta al actualizar")
-        @WithMockUser(username = "anotheruser", roles = { "USER" })
+        @WithMockUser(username = "anotheruser")
         void actualizarReceta_shouldReturnForbiddenIfUserNotOwner() throws Exception {
-                // En el mock, usamos 'anotherUser' que es el usuario de la prueba
-                // (@WithMockUser)
-                when(usuarioRepository.findByNombreUsuario(eq("anotheruser"))).thenReturn(Optional.of(anotherUser));
+                when(usuarioRepository.findByNombreUsuario("anotheruser")).thenReturn(Optional.of(anotherUser));
                 when(recetaService.actualizarReceta(eq(1), any(RecetaRequestDto.class), eq(anotherUser.getId())))
-                                .thenThrow(new Exception("No tienes permiso"));
+                                .thenThrow(new RuntimeException("No tienes permiso para actualizar esta receta."));
 
                 mockMvc.perform(put("/api/recetas/{id}", 1)
-                                // CORREGIDO: Se elimina el with(user) redundante y contradictorio
-                                .with(csrf()) // AÑADIDO: Necesario para peticiones POST, PUT, DELETE
+                                .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(testRecetaRequestDto)))
                                 .andExpect(status().isForbidden());
@@ -239,7 +207,6 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería subir una imagen para una receta")
-        @WithMockUser(username = "testuser", roles = { "USER" })
         void subirImagenReceta_shouldReturnImageUrl() throws Exception {
                 MockMultipartFile file = new MockMultipartFile("file", "test.jpg", MediaType.IMAGE_JPEG_VALUE,
                                 "some-image".getBytes());
@@ -257,7 +224,6 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería eliminar una imagen de una receta")
-        @WithMockUser(username = "testuser", roles = { "USER" })
         void eliminarImagenReceta_shouldReturnNoContent() throws Exception {
                 doNothing().when(recetaService).eliminarImagenReceta(eq(1));
 
@@ -269,47 +235,31 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería dar 'me gusta' a una receta")
-        @WithMockUser(username = "testuser", roles = { "USER" })
         void darMeGusta_shouldReturnOkStatus() throws Exception {
-                when(usuarioRepository.findByNombreUsuario(eq("testuser"))).thenReturn(Optional.of(testUser)); // Especificar
-                                                                                                               // el
-                                                                                                               // nombre
-                                                                                                               // de
-                                                                                                               // usuario
+                when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 doNothing().when(recetaService).darMeGusta(eq(testUser.getId()), eq(1));
 
-                // Ya tenía .with(csrf()), se mantiene.
                 mockMvc.perform(post("/api/recetas/{recetaId}/like", 1)
                                 .with(csrf()))
                                 .andExpect(status().isOk());
         }
 
         @Test
-        @DisplayName("Debería devolver 500 si el usuario no es encontrado al dar 'me gusta'")
-        @WithMockUser(username = "testuser", roles = { "USER" })
+        @DisplayName("Debería devolver 404 si el usuario no es encontrado al dar 'me gusta'")
         void darMeGusta_shouldReturnNotFoundIfUserNotFound() throws Exception {
-                when(usuarioRepository.findByNombreUsuario(eq("testuser"))).thenReturn(Optional.empty()); // Especificar
-                                                                                                          // el nombre
-                                                                                                          // de usuario
+                when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.empty());
 
-                // Ya tenía .with(csrf()), se mantiene.
                 mockMvc.perform(post("/api/recetas/{recetaId}/like", 1)
                                 .with(csrf()))
-                                .andExpect(status().isInternalServerError());
+                                .andExpect(status().isNotFound());
         }
 
         @Test
         @DisplayName("Debería quitar el 'me gusta' de una receta")
-        @WithMockUser(username = "testuser", roles = { "USER" })
         void quitarMeGusta_shouldReturnOkStatus() throws Exception {
-                when(usuarioRepository.findByNombreUsuario(eq("testuser"))).thenReturn(Optional.of(testUser)); // Especificar
-                                                                                                               // el
-                                                                                                               // nombre
-                                                                                                               // de
-                                                                                                               // usuario
+                when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 doNothing().when(recetaService).quitarMeGusta(eq(testUser.getId()), eq(1));
 
-                // Ya tenía .with(csrf()), se mantiene.
                 mockMvc.perform(delete("/api/recetas/{recetaId}/like", 1)
                                 .with(csrf()))
                                 .andExpect(status().isOk());
@@ -317,13 +267,9 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería devolver 404 si el usuario no es encontrado al quitar 'me gusta'")
-        @WithMockUser(username = "testuser", roles = { "USER" })
         void quitarMeGusta_shouldReturnNotFoundIfUserNotFound() throws Exception {
-                when(usuarioRepository.findByNombreUsuario(eq("testuser"))).thenReturn(Optional.empty()); // Especificar
-                                                                                                          // el nombre
-                                                                                                          // de usuario
+                when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.empty());
 
-                // Ya tenía .with(csrf()), se mantiene.
                 mockMvc.perform(delete("/api/recetas/{recetaId}/like", 1)
                                 .with(csrf()))
                                 .andExpect(status().isNotFound());
@@ -331,24 +277,16 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería agregar un comentario a una receta")
-        @WithMockUser(username = "testuser", roles = { "USER" })
         void agregarComentario_shouldReturnCreatedComment() throws Exception {
                 Comentario newComentario = new Comentario();
                 newComentario.setComentario("¡Qué rica receta!");
-                newComentario.setUsuario(testUser);
-                newComentario.setReceta(testReceta);
 
-                when(usuarioRepository.findByNombreUsuario(eq("testuser"))).thenReturn(Optional.of(testUser)); // Especificar
-                                                                                                               // el
-                                                                                                               // nombre
-                                                                                                               // de
-                                                                                                               // usuario
+                when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 when(recetaService.agregarComentario(eq(1), eq(testUser.getId()), eq("¡Qué rica receta!")))
                                 .thenReturn(newComentario);
 
                 mockMvc.perform(post("/api/recetas/{recetaId}/comments", 1)
-                                // REMOVIDO: .with(user("testuser").roles("USER"))
-                                .with(csrf()) // AÑADIDO: Necesario para peticiones POST, PUT, DELETE
+                                .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(newComentario)))
                                 .andExpect(status().isCreated())
@@ -357,18 +295,14 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería devolver 404 si el usuario no es encontrado al agregar comentario")
-        @WithMockUser(username = "testuser", roles = { "USER" })
         void agregarComentario_shouldReturnNotFoundIfUserNotFound() throws Exception {
                 Comentario newComentario = new Comentario();
                 newComentario.setComentario("¡Qué rica receta!");
 
-                when(usuarioRepository.findByNombreUsuario(eq("testuser"))).thenReturn(Optional.empty()); // Especificar
-                                                                                                          // el nombre
-                                                                                                          // de usuario
+                when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.empty());
 
                 mockMvc.perform(post("/api/recetas/{recetaId}/comments", 1)
-                                // REMOVIDO: .with(user("testuser").roles("USER"))
-                                .with(csrf()) // AÑADIDO: Necesario para peticiones POST, PUT, DELETE
+                                .with(csrf())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(newComentario)))
                                 .andExpect(status().isNotFound());
@@ -408,7 +342,7 @@ class RecetaControllerTest {
         @DisplayName("Debería devolver 404 si la receta no es encontrada por ID")
         void obtenerRecetaPorId_shouldReturnNotFound() throws Exception {
                 when(recetaService.obtenerRecetaOExcepcion(anyInt()))
-                                .thenThrow(new Exception("Receta no encontrada"));
+                                .thenThrow(new RuntimeException("Receta no encontrada con ID: 99"));
 
                 mockMvc.perform(get("/api/recetas/{id}", 99)
                                 .contentType(MediaType.APPLICATION_JSON))
@@ -453,47 +387,33 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería eliminar una receta")
-        @WithMockUser(username = "testuser", roles = { "USER" })
         void eliminarReceta_shouldReturnNoContent() throws Exception {
-                when(usuarioRepository.findByNombreUsuario(eq("testuser"))).thenReturn(Optional.of(testUser)); // Especificar
-                                                                                                               // el
-                                                                                                               // nombre
-                                                                                                               // de
-                                                                                                               // usuario
+                when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 doNothing().when(recetaService).eliminarReceta(eq(1), eq(testUser.getId()));
 
-                // Ya tenía .with(csrf()), se mantiene.
                 mockMvc.perform(delete("/api/recetas/{id}", 1).with(csrf()))
                                 .andExpect(status().isNoContent());
         }
 
         @Test
         @DisplayName("Debería devolver 404 si la receta a eliminar no es encontrada")
-        @WithMockUser(username = "testuser", roles = { "USER" })
         void eliminarReceta_shouldReturnNotFoundIfRecetaNotFound() throws Exception {
-                when(usuarioRepository.findByNombreUsuario(eq("testuser"))).thenReturn(Optional.of(testUser)); // Especificar
-                                                                                                               // el
-                                                                                                               // nombre
-                                                                                                               // de
-                                                                                                               // usuario
-                doThrow(new Exception("Receta no encontrada")).when(recetaService).eliminarReceta(
-                                eq(99),
-                                eq(testUser.getId()));
+                when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
+                doThrow(new RuntimeException("Receta no encontrada con ID: 99")).when(recetaService)
+                                .eliminarReceta(eq(99), eq(testUser.getId()));
 
-                // Ya tenía .with(csrf()), se mantiene.
                 mockMvc.perform(delete("/api/recetas/{id}", 99).with(csrf()))
                                 .andExpect(status().isNotFound());
         }
 
         @Test
         @DisplayName("Debería devolver 403 si el usuario no es el propietario de la receta al eliminar")
-        @WithMockUser(username = "anotheruser", roles = { "USER" })
+        @WithMockUser(username = "anotheruser")
         void eliminarReceta_shouldReturnForbiddenIfUserNotOwner() throws Exception {
-                when(usuarioRepository.findByNombreUsuario(eq("anotheruser"))).thenReturn(Optional.of(anotherUser));
-                doThrow(new Exception("No tienes permiso")).when(recetaService).eliminarReceta(eq(1),
-                                eq(anotherUser.getId()));
+                when(usuarioRepository.findByNombreUsuario("anotheruser")).thenReturn(Optional.of(anotherUser));
+                doThrow(new RuntimeException("No tienes permiso para eliminar esta receta.")).when(recetaService)
+                                .eliminarReceta(eq(1), eq(anotherUser.getId()));
 
-                // Ya tenía .with(csrf()), se mantiene.
                 mockMvc.perform(delete("/api/recetas/{id}", 1)
                                 .with(csrf()))
                                 .andExpect(status().isForbidden());
@@ -501,31 +421,20 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería calificar una receta")
-        @WithMockUser(username = "testuser", roles = { "USER" })
         void calificarReceta_shouldReturnOkStatus() throws Exception {
-                when(usuarioRepository.findByNombreUsuario(eq("testuser"))).thenReturn(Optional.of(testUser)); // Especificar
-                                                                                                               // el
-                                                                                                               // nombre
-                                                                                                               // de
-                                                                                                               // usuario
+                when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 doNothing().when(recetaService).calificarReceta(eq(testUser.getId()), eq(1), eq(5));
 
                 mockMvc.perform(post("/api/recetas/{recetaId}/calificar", 1)
                                 .param("puntuacion", "5")
-                                .with(csrf())) // Ya tenía .with(csrf()), se mantiene.
+                                .with(csrf()))
                                 .andExpect(status().isOk());
         }
 
         @Test
         @DisplayName("Debería obtener la calificación de una receta")
-        @WithMockUser(username = "testuser", roles = { "USER" }) // Simular usuario autenticado
         void obtenerCalificacionDeReceta_shouldReturnRating() throws Exception {
-                when(usuarioRepository.findByNombreUsuario(eq("testuser"))).thenReturn(Optional.of(testUser)); // Especificar
-                                                                                                               // el
-                                                                                                               // nombre
-                                                                                                               // de
-                                                                                                               // usuario
-                // Nota: Este test no necesita .with(csrf()) porque es un GET.
+                when(usuarioRepository.findByNombreUsuario("testuser")).thenReturn(Optional.of(testUser));
                 when(recetaService.obtenerCalificacionDeReceta(eq(testUser.getId()), eq(1))).thenReturn(4);
 
                 mockMvc.perform(get("/api/recetas/{recetaId}/calificacion", 1))
@@ -535,7 +444,6 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería agregar una categoría a una receta")
-        @WithMockUser(username = "testuser", roles = { "USER" })
         void agregarCategoria_shouldReturnUpdatedReceta() throws Exception {
                 when(recetaService.agregarCategoria(eq(1), eq(101))).thenReturn(testReceta);
 
@@ -547,7 +455,6 @@ class RecetaControllerTest {
 
         @Test
         @DisplayName("Debería eliminar una categoría de una receta")
-        @WithMockUser(username = "testuser", roles = { "USER" })
         void eliminarCategoria_shouldReturnUpdatedReceta() throws Exception {
                 when(recetaService.eliminarCategoria(eq(1), eq(101))).thenReturn(testReceta);
 
