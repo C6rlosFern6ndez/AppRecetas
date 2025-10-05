@@ -1,76 +1,211 @@
-// src/services/recipeService.js
+/**
+ * Servicio para gestionar llamadas a la API de recetas.
+ *
+ * Base URL: http://localhost:8080/api/
+ * Utiliza axios para las peticiones HTTP.
+ * Implementa autenticación con JWT cuando sea necesario.
+ */
 
-// Simulación de llamadas a API para obtener recetas.
-// En una aplicación real, aquí harías llamadas a tu backend.
+import axios from 'axios';
 
-const mockRecipes = [
-    { id: 1, name: 'Paella Valenciana', description: 'Arroz con pollo, conejo y verduras.', category: 'Arroces', rating: 5, imageUrl: 'https://via.placeholder.com/150/a17c38' },
-    { id: 2, name: 'Tortilla Española', description: 'Tortilla de patatas y cebolla.', category: 'Tapas', rating: 4, imageUrl: 'https://via.placeholder.com/150/b0a89e' },
-    { id: 3, name: 'Gazpacho Andaluz', description: 'Sopa fría de tomate y verduras.', category: 'Sopas', rating: 4, imageUrl: 'https://via.placeholder.com/150/b0a89e' },
-    { id: 4, name: 'Crema Catalana', description: 'Postre similar a la crème brûlée.', category: 'Postres', rating: 5, imageUrl: 'https://via.placeholder.com/150/6b4f2c' },
-    { id: 5, name: 'Pulpo a la Gallega', description: 'Pulpo cocido con pimentón y aceite de oliva.', category: 'Mariscos', rating: 4, imageUrl: 'https://via.placeholder.com/150/a17c38' },
-    { id: 6, name: 'Fabada Asturiana', description: 'Guiso de fabes con chorizo y morcilla.', category: 'Guisos', rating: 5, imageUrl: 'https://via.placeholder.com/150/b0a89e' },
-    { id: 7, name: 'Salmorejo Cordobés', description: 'Crema fría de tomate más espesa que el gazpacho.', category: 'Sopas', rating: 3, imageUrl: 'https://via.placeholder.com/150/b0a89e' },
-    { id: 8, name: 'Tarta de Santiago', description: 'Tarta de almendras.', category: 'Postres', rating: 4, imageUrl: 'https://via.placeholder.com/150/6b4f2c' },
-    { id: 9, name: 'Gambas al Ajillo', description: 'Gambas salteadas con ajo y guindilla.', category: 'Mariscos', rating: 4, imageUrl: 'https://via.placeholder.com/150/a17c38' },
-    { id: 10, name: 'Pimientos de Padrón', description: 'Pequeños pimientos fritos con sal.', category: 'Tapas', rating: 3, imageUrl: 'https://via.placeholder.com/150/b0a89e' },
-];
+// Crear instancia de axios con configuración base
+export const apiClient = axios.create({
+    baseURL: 'http://localhost:8080/api/',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    timeout: 10000, // 10 segundos de timeout
+});
 
-// Simula un retraso de red
-const simulateApiCall = (data, delay = 500) => {
-    return new Promise(resolve => setTimeout(() => resolve(data), delay));
-};
+// Interceptor para agregar token JWT automáticamente
+apiClient.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+}, (error) => {
+    return Promise.reject(error);
+});
+
+// Interceptor para manejar errores de autenticación
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            console.warn('Token expirado o inválido. Redirigiendo al login');
+            localStorage.removeItem('token');
+            // Opcional: redirigir al login
+            // window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
 
 /**
- * Obtiene las recetas mejor valoradas.
+ * Mapea la respuesta de la API a un formato compatible con los componentes
+ * @param {object} receta - Objeto receta del backend
+ * @returns {object} - Receta en formato frontend
+ */
+const mapRecipeToFrontend = (receta) => ({
+    id: receta.id,
+    name: receta.titulo,
+    description: receta.descripcion,
+    category: receta.categorias?.[0]?.nombre || 'Sin categoría',
+    rating: Math.round(receta.calificaciones?.reduce((sum, cal) => sum + cal.puntuacion, 0) / (receta.calificaciones?.length || 1)) || 0,
+    imageUrl: receta.urlImagen || '/imagen-default.jpg',
+    usuario: receta.usuario?.nombreUsuario,
+    tiempoPreparacion: receta.tiempoPreparacion,
+    dificultad: receta.dificultad,
+    createdAt: receta.fechaCreacion
+});
+
+/**
+ * Obtiene las recetas mejor valoradas ordenadas por calificación promedio.
  * @param {object} options - Opciones para la consulta.
- * @param {number} options.limit - Número máximo de recetas a devolver.
- * @returns {Promise<Array<object>>} - Promesa que resuelve con un array de recetas.
+ * @param {number} options.limit - Número máximo de recetas a devolver (default: 10).
+ * @returns {Promise<Array<object>>} - Promesa que resuelve con un array de recetas mejores valoradas.
  */
 export const getBestRatedRecipes = async ({ limit = 10 }) => {
-    console.log(`Fetching best rated recipes (limit: ${limit})...`);
-    // Ordenar por rating descendente y tomar el límite
-    const sortedRecipes = [...mockRecipes].sort((a, b) => b.rating - a.rating);
-    return simulateApiCall(sortedRecipes.slice(0, limit));
+    console.log(`Obteniendo recetas mejor valoradas (límite: ${limit})...`);
+
+    try {
+        // Obtener todas las recetas con calificaciones
+        const response = await apiClient.get('/recetas', {
+            params: { size: 100 } // Obtener más para poder ordenar por calificación
+        });
+
+        // Mapeamos las recetas y calculamos su promedio de calificación
+        const recipes = response.data.content.map(mapRecipeToFrontend);
+
+        // Ordenar por rating descendente
+        const sortedRecipes = recipes.sort((a, b) => b.rating - a.rating);
+
+        return sortedRecipes.slice(0, limit);
+    } catch (error) {
+        console.error('Error obteniendo recetas mejor valoradas:', error);
+        throw new Error('No se pudo cargar las recetas mejor valoradas');
+    }
 };
 
 /**
- * Obtiene recetas representativas de diferentes categorías.
- * @returns {Promise<Array<object>>} - Promesa que resuelve con un array de recetas.
+ * Obtiene recetas representativas de diferentes categorías para mostrar un "vistazo".
+ * Selecciona categorías populares y toma algunas recetas de cada una.
+ * @returns {Promise<Array<object>>} - Promesa que resuelve con un array de recetas por categoría.
  */
 export const getCategoryShowcaseRecipes = async () => {
-    console.log('Fetching category showcase recipes...');
-    // Seleccionar algunas recetas de diferentes categorías para mostrar
-    const showcase = mockRecipes.filter(recipe => 
-        recipe.category === 'Arroces' || 
-        recipe.category === 'Tapas' || 
-        recipe.category === 'Postres'
-    );
-    return simulateApiCall(showcase);
+    console.log('Obteniendo recetas representativas por categoría...');
+
+    try {
+        // Obtener las categorías disponibles
+        const categoriesResponse = await apiClient.get('/categorias');
+        const categories = categoriesResponse.data;
+
+        const showcaseRecipes = [];
+
+        // Para cada categoría, obtener algunas recetas (máximo 2-3 por categoría)
+        for (const category of categories.slice(0, 6)) { // Limitar a 6 categorías para no sobrecargar
+            try {
+                const recipesResponse = await apiClient.get(`/categorias/${category.id}/recetas`, {
+                    params: { size: 3, sort: 'fechaCreacion,desc' }
+                });
+
+                const categoryRecipes = recipesResponse.data.content.map(mapRecipeToFrontend);
+                showcaseRecipes.push(...categoryRecipes);
+            } catch (error) {
+                console.warn(`Error obteniendo recetas de categoría ${category.nombre}:`, error);
+            }
+        }
+
+        return showcaseRecipes;
+    } catch (error) {
+        console.error('Error obteniendo categorias:', error);
+        // Fallback: devolver array vacío
+        return [];
+    }
 };
 
 /**
- * Obtiene las últimas recetas subidas.
+ * Obtiene las últimas recetas subidas ordenadas por fecha de creación.
  * @param {object} options - Opciones para la consulta.
- * @param {number} options.limit - Número máximo de recetas a devolver.
- * @returns {Promise<Array<object>>} - Promesa que resuelve con un array de recetas.
+ * @param {number} options.limit - Número máximo de recetas a devolver (default: 10).
+ * @returns {Promise<Array<object>>} - Promesa que resuelve con un array de las últimas recetas.
  */
 export const getLatestRecipes = async ({ limit = 10 }) => {
-    console.log(`Fetching latest recipes (limit: ${limit})...`);
-    // En un escenario real, esto se basaría en una fecha de creación. Aquí simulamos con las últimas del array.
-    const latest = [...mockRecipes].slice(-limit);
-    return simulateApiCall(latest);
+    console.log(`Obteniendo últimas recetas (límite: ${limit})...`);
+
+    try {
+        const response = await apiClient.get('/recetas', {
+            params: {
+                size: limit,
+                sort: 'fechaCreacion,desc'
+            }
+        });
+
+        return response.data.content.map(mapRecipeToFrontend);
+    } catch (error) {
+        console.error('Error obteniendo últimas recetas:', error);
+        throw new Error('No se pudo cargar las últimas recetas');
+    }
 };
 
 /**
- * Obtiene recetas aleatorias.
+ * Obtiene recetas aleatorias mezclando los resultados de la búsqueda general.
  * @param {object} options - Opciones para la consulta.
- * @param {number} options.limit - Número máximo de recetas a devolver.
- * @returns {Promise<Array<object>>} - Promesa que resuelve con un array de recetas.
+ * @param {number} options.limit - Número máximo de recetas a devolver (default: 10).
+ * @returns {Promise<Array<object>>} - Promesa que resuelve con un array de recetas aleatorias.
  */
 export const getRandomRecipes = async ({ limit = 10 }) => {
-    console.log(`Fetching random recipes (limit: ${limit})...`);
-    // Barajar el array y tomar el límite
-    const shuffled = [...mockRecipes].sort(() => 0.5 - Math.random());
-    return simulateApiCall(shuffled.slice(0, limit));
+    console.log(`Obteniendo recetas aleatorias (límite: ${limit})...`);
+
+    try {
+        // Obtener una página grande de recetas para luego mezclar
+        const response = await apiClient.get('/recetas', {
+            params: { size: 50 } // Obtener más para tener variedad
+        });
+
+        const recipes = response.data.content.map(mapRecipeToFrontend);
+
+        // Mezclar el array y tomar el límite
+        const shuffled = [...recipes].sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, limit);
+    } catch (error) {
+        console.error('Error obteniendo recetas aleatorias:', error);
+        throw new Error('No se pudo cargar las recetas aleatorias');
+    }
+};
+
+/**
+ * Realiza una búsqueda avanzada de recetas
+ * @param {object} filtros - Filtros de búsqueda
+ * @param {string} filtros.titulo - Búsqueda por título
+ * @param {string} filtros.ingredienteNombre - Búsqueda por ingrediente
+ * @param {string} filtros.dificultad - FACIL/MEDIA/DIFICIL
+ * @param {number} filtros.tiempoPreparacionMax - Tiempo máximo de preparación
+ * @param {string} filtros.categoriaNombre - Búsqueda por categoría
+ * @param {number} page - Página (0-based, default: 0)
+ * @param {number} size - Tamaño de página (default: 20)
+ * @returns {Promise<object>} - Resultado de búsqueda con paginación
+ */
+export const searchRecipes = async (filtros = {}, page = 0, size = 20) => {
+    console.log('Buscando recetas con filtros:', filtros);
+
+    try {
+        const response = await apiClient.get('/recetas/search', {
+            params: {
+                ...filtros,
+                page,
+                size,
+                sort: 'fechaCreacion,desc'
+            }
+        });
+
+        return {
+            ...response.data,
+            content: response.data.content.map(mapRecipeToFrontend)
+        };
+    } catch (error) {
+        console.error('Error buscando recetas:', error);
+        throw error;
+    }
 };

@@ -3,6 +3,7 @@
 @use 'mixins' as mix;
 @use 'components/navbar';
 @use 'components/footer';
+@use 'components/recipe-slideshow';
 @use 'sass:color';
 
 // 2. Reseteo básico y estilos globales
