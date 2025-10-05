@@ -25,6 +25,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.recetas.backend.domain.entity.Rol;
+import com.recetas.backend.domain.repository.RevokedTokenRepository; // Importar RevokedTokenRepository
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -64,6 +65,9 @@ class UserControllerTest {
 
     @MockBean
     private UserService userService;
+
+    @MockBean
+    private RevokedTokenRepository revokedTokenRepository; // Mock para RevokedTokenRepository
 
     private Usuario testUserEntity;
     private Usuario followedUserEntity;

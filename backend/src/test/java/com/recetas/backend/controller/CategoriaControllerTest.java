@@ -18,6 +18,8 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.recetas.backend.domain.repository.RevokedTokenRepository; // Importar RevokedTokenRepository
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +50,9 @@ public class CategoriaControllerTest {
 
     @MockBean
     private com.recetas.backend.security.JwtUtils jwtUtils;
+
+    @MockBean
+    private RevokedTokenRepository revokedTokenRepository; // Mock para RevokedTokenRepository
 
     @Autowired
     private ObjectMapper objectMapper;

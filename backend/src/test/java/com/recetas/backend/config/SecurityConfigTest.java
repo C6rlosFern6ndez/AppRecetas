@@ -17,6 +17,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 
 import com.recetas.backend.security.AuthEntryPointJwt;
 import com.recetas.backend.security.JwtUtils;
+import com.recetas.backend.domain.repository.RevokedTokenRepository; // Importar RevokedTokenRepository
 
 /**
  * Tests unitarios para la configuración de seguridad de Spring Security.
@@ -32,11 +33,15 @@ class SecurityConfigTest {
         @Mock
         private JwtUtils jwtUtils;
 
+        @Mock
+        private RevokedTokenRepository revokedTokenRepository; // Mock para RevokedTokenRepository
+
         private SecurityConfig securityConfig;
 
         @BeforeEach
         void setup() {
-                securityConfig = new SecurityConfig(authEntryPointJwt, jwtUtils);
+                // Se pasa el mock de RevokedTokenRepository al constructor de SecurityConfig
+                securityConfig = new SecurityConfig(authEntryPointJwt, jwtUtils, revokedTokenRepository);
         }
 
         /**
@@ -78,6 +83,11 @@ class SecurityConfigTest {
                 assertNotNull(allowedOrigins);
                 assertTrue(allowedOrigins.contains("http://localhost:4200"));
                 assertTrue(allowedOrigins.contains("http://localhost:8080"));
+
+                // Verificar que también se permite el patrón http://localhost:517*
+                List<String> allowedOriginPatterns = corsConfig.getAllowedOriginPatterns();
+                assertNotNull(allowedOriginPatterns);
+                assertTrue(allowedOriginPatterns.contains("http://localhost:517*"));
         }
 
         /**

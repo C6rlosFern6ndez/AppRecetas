@@ -28,6 +28,7 @@ import com.recetas.backend.service.IngredienteService; // Importar IngredienteSe
 import com.recetas.backend.service.UserService; // Importar UserService
 import org.springframework.security.core.userdetails.UserDetailsService; // Importar UserDetailsService
 import org.springframework.security.authentication.AuthenticationManager; // Importar AuthenticationManager
+import com.recetas.backend.domain.repository.RevokedTokenRepository; // Importar RevokedTokenRepository
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -79,6 +80,9 @@ class RecetaControllerTest {
         private AuthEntryPointJwt authEntryPointJwt; // Añadido para limpiar
         @MockBean
         private AuthenticationManager authenticationManager; // Añadido para que SecurityConfig pueda inyectarlo
+
+        @MockBean
+        private RevokedTokenRepository revokedTokenRepository; // Mock para RevokedTokenRepository
 
         @Autowired
         private ObjectMapper objectMapper;
@@ -381,31 +385,6 @@ class RecetaControllerTest {
                                 .andExpect(jsonPath("$.content.size()").value(1))
                                 .andExpect(jsonPath("$.content[0].titulo").value("Receta de Prueba"));
         }
-
-        // @Test
-        // @DisplayName("Debería buscar recetas por criterios")
-        // @WithMockUser(username = "testuser")
-        // void buscarRecetas_shouldReturnPagedRecetas() throws Exception {
-        // Pageable pageable = PageRequest.of(0, 10);
-        // // Asegurarse de que el mock devuelva una PageImpl con contenido real
-        // Page<Receta> page = new PageImpl<>(Collections.singletonList(testReceta),
-        // pageable, 1);
-        // when(recetaService.buscarRecetas(any(String.class), any(String.class),
-        // any(Dificultad.class),
-        // any(Integer.class), any(String.class),
-        // any(Pageable.class))).thenReturn(page);
-
-        // mockMvc.perform(get("/api/recetas/search")
-        // .param("titulo", "Prueba")
-        // .param("dificultad", "FACIL")
-        // .param("page", "0")
-        // .param("size", "10")
-        // .contentType(MediaType.APPLICATION_JSON))
-        // .andDo(print()) // Imprimir la respuesta para depuración
-        // .andExpect(status().isOk())
-        // .andExpect(jsonPath("$.content.size()").value(1))
-        // .andExpect(jsonPath("$.content[0].titulo").value("Receta de Prueba"));
-        // }
 
         @Test
         @DisplayName("Debería buscar recetas por criterios")
