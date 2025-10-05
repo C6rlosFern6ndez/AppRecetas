@@ -9,11 +9,12 @@ Este archivo contiene todas las tareas necesarias para desarrollar el frontend d
 - [x] Implementar la página `LoginPage` con su formulario, funcionalidad de inicio de sesión y validación de contraseña.
 - [x] Implementar la página `SignupPage` con su formulario, funcionalidad de registro y validación de contraseña.
 - [x] Crear archivos SCSS para las páginas de autenticación (`LoginPage.scss`, `SignupPage.scss`).
-- [x] Implementar el `AuthContext` para gestionar el estado de autenticación (revisado y correcto).
+- [x] Implementar el `AuthContext` para gestionar el estado de autenticación (refactorizado para separar el hook `useAuth`).
 - [x] Implementar el `authService` para las peticiones de login y registro (refactorizado para usar `axios`, corregido el mapeo de contraseña y el nombre del campo de email).
 - [x] Configurar el enrutador principal en `App.jsx`.
 - [x] Implementar rutas protegidas para usuarios autenticados.
 - [x] Crear componentes `Navbar` y `Footer`.
+- [x] Implementar redirección automática al login en caso de token expirado o inválido (error 401) mediante un sistema de eventos.
 
 ## Fase 2: Visualización de Recetas
 

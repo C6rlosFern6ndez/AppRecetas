@@ -33,10 +33,10 @@ apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            console.warn('Token expirado o inválido. Redirigiendo al login');
+            console.warn('Token expirado o inválido. Desencadenando evento de logout.'); // Log descriptivo
             localStorage.removeItem('token');
-            // Opcional: redirigir al login
-            // window.location.href = '/login';
+            // Disparar un evento personalizado para que la app reaccione
+            window.dispatchEvent(new Event('unauthorized'));
         }
         return Promise.reject(error);
     }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom'; // Importar Link para el enlace de registro
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { login as loginService } from '../../services/authService';
 import '../../styles/pages/LoginPage.scss'; // Importar estilos SCSS
 

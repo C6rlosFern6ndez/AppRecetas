@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { useAuth } from './hooks/useAuth'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/Auth/LoginPage'
 import SignupPage from './pages/Auth/SignupPage'
@@ -10,6 +12,21 @@ import Footer from './components/layout/Footer'
 import ProtectedRoute from './components/common/ProtectedRoute'
 
 function App() {
+  const { logout } = useAuth();
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      console.log('Evento de no autorizado recibido. Cerrando sesión...');
+      logout();
+    };
+
+    window.addEventListener('unauthorized', handleUnauthorized);
+
+    return () => {
+      window.removeEventListener('unauthorized', handleUnauthorized);
+    };
+  }, [logout]);
+
   return (
     <Router>
       <Navbar />
