@@ -8,16 +8,16 @@
   left: 0;
   width: 100%;
   z-index: 1000;
-  background-color: variables.$white;
+  background-color: variables.$color-white;
   padding: variables.$spacing-sm variables.$spacing-lg;
-  border-bottom: 1px solid variables.$border-color;
+  border-bottom: 1px solid variables.$color-border;
   display: flex;
   justify-content: space-between;
   align-items: center;
 
   h1 {
     margin-bottom: 0;
-    color: variables.$primary-color;
+    color: variables.$color-primary;
     font-size: variables.$font-size-large;
   }
 
@@ -29,22 +29,22 @@
 
   li {
     a {
-      color: variables.$text-color;
+      color: variables.$color-text-dark;
       font-weight: variables.$font-weight-normal;
       &:hover {
-        color: variables.$primary-color;
+        color: variables.$color-primary;
         font-weight: variables.$font-weight-bold;
       }
     }
   }
 
   button {
-    @include mixins.button-styles(variables.$primary-color, variables.$white);
+    @include mixins.button-styles(variables.$color-primary, variables.$color-white);
     padding: variables.$spacing-xs variables.$spacing-sm;
     font-size: variables.$font-size-small;
     &:hover {
       opacity: 1;
-      background-color: color.adjust(variables.$primary-color, $lightness: -10%);
+      background-color: color.adjust(variables.$color-primary, $lightness: -10%);
     }
   }
 }

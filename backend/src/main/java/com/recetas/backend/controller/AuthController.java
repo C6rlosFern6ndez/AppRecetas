@@ -8,6 +8,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest; // Importar HttpServletRequest
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,9 +17,13 @@ import org.springframework.web.bind.annotation.RestController;
 import com.recetas.backend.domain.dto.LoginRequestDto;
 import com.recetas.backend.domain.dto.LoginResponseDto;
 import com.recetas.backend.domain.dto.SignupRequestDto;
+import com.recetas.backend.domain.entity.RevokedToken; // Importar RevokedToken
 import com.recetas.backend.domain.entity.Usuario;
+import com.recetas.backend.domain.repository.RevokedTokenRepository; // Importar RevokedTokenRepository
 import com.recetas.backend.security.JwtUtils;
 import com.recetas.backend.service.UserService;
+
+import java.time.Instant; // Importar Instant
 
 /**
  * Controlador para manejar las operaciones de autenticación.
@@ -35,6 +40,9 @@ public class AuthController {
 
     @Autowired
     private JwtUtils jwtUtils;
+
+    @Autowired
+    private RevokedTokenRepository revokedTokenRepository; // Inyectar RevokedTokenRepository
 
     /**
      * Endpoint para el registro de nuevos usuarios.
@@ -68,5 +76,27 @@ public class AuthController {
         String jwt = jwtUtils.generateJwtToken(authentication);
 
         return ResponseEntity.ok(new LoginResponseDto(jwt));
+    }
+
+    /**
+     * Endpoint para cerrar la sesión de un usuario.
+     * Añade el token JWT actual a la lista negra de tokens revocados.
+     *
+     * @param request La petición HTTP para extraer el token.
+     * @return ResponseEntity con un mensaje de éxito.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+        String jwt = jwtUtils.getJwtFromRequest(request); // Asumiendo que JwtUtils tiene un método para extraer el
+                                                          // token
+
+        if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
+            // Obtener la fecha de expiración del token para almacenarla
+            Instant expiryDate = jwtUtils.getExpirationDateFromJwtToken(jwt).toInstant();
+            RevokedToken revokedToken = new RevokedToken(jwt, expiryDate);
+            revokedTokenRepository.save(revokedToken);
+            return ResponseEntity.ok("Sesión cerrada exitosamente. Token revocado.");
+        }
+        return new ResponseEntity<>("No se pudo revocar el token o el token es inválido.", HttpStatus.BAD_REQUEST);
     }
 }

@@ -6,10 +6,11 @@ Este archivo contiene todas las tareas necesarias para desarrollar el frontend d
 
 - [x] Instalar dependencias (`react-router-dom`, `sass`).
 - [x] Configurar la estructura de carpetas según el `README.md`.
-- [x] Crear la página `LoginPage` con su formulario.
-- [x] Crear la página `SignupPage` con su formulario.
-- [x] Implementar el `AuthContext` para gestionar el estado de autenticación.
-- [x] Implementar el `authService` para las peticiones de login y registro.
+- [x] Implementar la página `LoginPage` con su formulario, funcionalidad de inicio de sesión y validación de contraseña.
+- [x] Implementar la página `SignupPage` con su formulario, funcionalidad de registro y validación de contraseña.
+- [x] Crear archivos SCSS para las páginas de autenticación (`LoginPage.scss`, `SignupPage.scss`).
+- [x] Implementar el `AuthContext` para gestionar el estado de autenticación (revisado y correcto).
+- [x] Implementar el `authService` para las peticiones de login y registro (refactorizado para usar `axios`, corregido el mapeo de contraseña y el nombre del campo de email).
 - [x] Configurar el enrutador principal en `App.jsx`.
 - [x] Implementar rutas protegidas para usuarios autenticados.
 - [x] Crear componentes `Navbar` y `Footer`.
@@ -36,10 +37,10 @@ Este archivo contiene todas las tareas necesarias para desarrollar el frontend d
 
 ## Fase 4: Creación y Edición de Recetas
 
-- [ ] Crear la página `CreateRecipePage` con el formulario de creación/edición.
-- [ ] Implementar los campos del formulario (título, descripción, ingredientes, pasos, etc.).
-- [ ] Implementar la lógica para la subida de imágenes.
-- [ ] Implementar las funciones en `recipeService` para crear y actualizar recetas.
+- [x] Crear la página `CreateRecipePage` con el formulario de creación/edición.
+- [x] Implementar los campos del formulario (título, descripción, ingredientes, pasos, etc.).
+- [x] Implementar la lógica para la subida de imágenes.
+- [x] Implementar las funciones en `recipeService` para crear y actualizar recetas.
 - [ ] Añadir la lógica para precargar los datos de una receta al editarla.
 
 ## Fase 5: Búsqueda y Refinamiento

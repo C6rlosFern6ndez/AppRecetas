@@ -18,20 +18,20 @@
 body {
   font-family: vars.$font-family-primary;
   font-size: vars.$font-size-base;
-  color: vars.$text-color;
-  background-color: vars.$background-color;
+  color: vars.$color-text-dark; // Usar la variable correcta
+  background-color: vars.$color-background-light; // Usar la variable correcta
   line-height: 1.6;
   padding-top: 50px; /* Re-added to accommodate fixed navbar */
   margin-bottom: 50px; /* Re-added to accommodate fixed footer */
 }
 
 a {
-  color: vars.$primary-color;
+  color: vars.$color-primary; // Usar la variable correcta
   text-decoration: none;
   @include mix.transition;
 
   &:hover {
-    color: color.adjust(vars.$primary-color, $lightness: -10%);
+    color: color.adjust(vars.$color-primary, $lightness: -10%); // Usar la variable correcta
   }
 }
 
@@ -52,11 +52,11 @@ main {
 // 3. Estilos para componentes comunes (ej. botones)
 
 .btn {
-  @include mix.button-styles(vars.$primary-color, vars.$white);
+  @include mix.button-styles(vars.$color-primary, vars.$color-white); // Usar las variables correctas
 }
 
 .btn-secondary {
-  @include mix.button-styles(vars.$secondary-color, vars.$white);
+  @include mix.button-styles(vars.$color-secondary, vars.$color-white); // Usar las variables correctas
 }
 
 // Estilos para formularios
@@ -67,9 +67,9 @@ form {
   max-width: 400px;
   margin: 0 auto;
   padding: vars.$spacing-lg;
-  background-color: vars.$white;
+  background-color: vars.$color-white; // Usar la variable correcta
   border-radius: vars.$border-radius;
-  border: 1px solid vars.$border-color;
+  border: 1px solid vars.$color-border; // Usar la variable correcta
 }
 
 form div {
@@ -84,12 +84,12 @@ form label {
 
 form input {
   padding: vars.$spacing-sm;
-  border: 1px solid vars.$border-color;
+  border: 1px solid vars.$color-border; // Usar la variable correcta
   border-radius: vars.$border-radius;
   font-size: vars.$font-size-base;
 }
 
 form button {
-  @include mix.button-styles(vars.$primary-color, vars.$white);
+  @include mix.button-styles(vars.$color-primary, vars.$color-white); // Usar las variables correctas
   align-self: flex-start;
 }

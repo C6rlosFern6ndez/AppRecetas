@@ -21,6 +21,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.recetas.backend.security.AuthEntryPointJwt;
 import com.recetas.backend.security.AuthTokenFilter;
 import com.recetas.backend.security.JwtUtils; // Importar JwtUtils
+import com.recetas.backend.domain.repository.RevokedTokenRepository; // Importar RevokedTokenRepository
 
 /**
  * Configuración de seguridad para la aplicación.
@@ -32,20 +33,26 @@ public class SecurityConfig {
 
     private final AuthEntryPointJwt unauthorizedHandler;
     private final JwtUtils jwtUtils; // Añadir JwtUtils como dependencia
+    private final RevokedTokenRepository revokedTokenRepository; // Inyectar RevokedTokenRepository
 
     /**
      * Se utiliza inyección por constructor en lugar de @Autowired en campos.
      * Esto es una mejor práctica porque hace las dependencias obligatorias y
      * explícitas.
      */
-    public SecurityConfig(AuthEntryPointJwt unauthorizedHandler, JwtUtils jwtUtils) {
+    public SecurityConfig(AuthEntryPointJwt unauthorizedHandler, JwtUtils jwtUtils,
+            RevokedTokenRepository revokedTokenRepository) {
         this.unauthorizedHandler = unauthorizedHandler;
         this.jwtUtils = jwtUtils;
+        this.revokedTokenRepository = revokedTokenRepository;
     }
 
     @Bean
     AuthTokenFilter authenticationJwtTokenFilter(UserDetailsService userDetailsService) {
-        return new AuthTokenFilter(jwtUtils, userDetailsService); // Pasar JwtUtils y UserDetailsService al constructor
+        return new AuthTokenFilter(jwtUtils, userDetailsService, revokedTokenRepository); // Pasar JwtUtils,
+                                                                                          // UserDetailsService y
+                                                                                          // RevokedTokenRepository al
+                                                                                          // constructor
     }
 
     @Bean
@@ -92,7 +99,10 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Se permite el origen del frontend en desarrollo y el propio backend
+        // Se añade soporte para http://localhost:517* para permitir la comunicación con
+        // aplicaciones frontend en diferentes puertos.
         configuration.setAllowedOrigins(java.util.Arrays.asList("http://localhost:4200", "http://localhost:8080"));
+        configuration.addAllowedOriginPattern("http://localhost:517*"); // Permite cualquier puerto que comience con 517
         // Se especifican los métodos HTTP permitidos
         configuration.setAllowedMethods(java.util.Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         // Se definen las cabeceras permitidas

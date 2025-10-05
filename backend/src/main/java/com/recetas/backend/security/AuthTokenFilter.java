@@ -11,6 +11,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.beans.factory.annotation.Autowired; // Importar Autowired
+
+import com.recetas.backend.domain.repository.RevokedTokenRepository; // Importar RevokedTokenRepository
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -26,11 +29,14 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
     private final UserDetailsService userDetailsService;
+    private final RevokedTokenRepository revokedTokenRepository; // Inyectar RevokedTokenRepository
     private static final Logger logger = LoggerFactory.getLogger(AuthTokenFilter.class);
 
-    public AuthTokenFilter(JwtUtils jwtUtils, UserDetailsService userDetailsService) {
+    public AuthTokenFilter(JwtUtils jwtUtils, UserDetailsService userDetailsService,
+            RevokedTokenRepository revokedTokenRepository) {
         this.jwtUtils = jwtUtils;
         this.userDetailsService = userDetailsService;
+        this.revokedTokenRepository = revokedTokenRepository;
     }
 
     /**
@@ -47,18 +53,34 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             throws IOException, ServletException {
         try {
             String jwt = parseJwt(request);
-            if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-                String username = jwtUtils.getUserNameFromJwtToken(jwt);
+            if (jwt != null) {
+                logger.debug("Token JWT extraído: {}", jwt);
+                // Verificar si el token está en la lista negra
+                if (revokedTokenRepository.existsByToken(jwt)) {
+                    logger.warn("Token JWT revocado para la petición: {}", request.getRequestURI());
+                    // No se establece la autenticación si el token está revocado
+                    return; // Salir del filtro para que AuthEntryPointJwt maneje el 401
+                }
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                if (jwtUtils.validateJwtToken(jwt)) {
+                    String username = jwtUtils.getUserNameFromJwtToken(jwt);
+                    logger.debug("Usuario del token JWT: {}", username);
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                } else {
+                    logger.warn("Token JWT inválido o expirado para la petición: {}", request.getRequestURI());
+                }
+            } else {
+                logger.debug("No se encontró token JWT en la cabecera de autorización para la petición: {}",
+                        request.getRequestURI());
             }
         } catch (Exception e) {
-            logger.error("No se puede establecer la autenticación del usuario: {}", e.getMessage());
+            logger.error("No se puede establecer la autenticación del usuario: {}", e.getMessage(), e);
             // Aquí podrías manejar el error de forma más específica, por ejemplo,
             // devolviendo un 401
             // a través del AuthEntryPointJwt si el token es inválido o expirado.

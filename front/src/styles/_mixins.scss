@@ -28,9 +28,14 @@
   }
 }
 
+// Mixin para definir tamaños de fuente
+@mixin font-size($sizeValue) {
+  font-size: $sizeValue;
+}
+
 // Mixin para estilos de botones
 @mixin button-styles($background-color, $text-color) {
-  background-color: variables.$background-color;
+  background-color: $background-color; // Usar el parámetro directamente
   color: $text-color;
   padding: variables.$spacing-sm variables.$spacing-md;
   border: none;
@@ -44,7 +49,7 @@
   }
 
   &:disabled {
-    background-color: color.adjust(variables.$background-color, $lightness: 20%);
+    background-color: color.adjust($background-color, $lightness: 20%); // Usar el parámetro directamente
     cursor: not-allowed;
   }
 }

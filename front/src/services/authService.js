@@ -1,58 +1,38 @@
-const API_URL = 'http://localhost:8080/api/auth'; // Ajusta esta URL si tu backend corre en otro puerto
+import { apiClient } from './recipeService'; // Importar la instancia de axios configurada
 
 /**
  * Registra un nuevo usuario.
- * @param {object} userData - Datos del usuario (nombre_usuario, email, contrasena).
+ * @param {object} userData - Datos del usuario (nombreUsuario, email, contrasena).
  * @returns {Promise<object>} - La respuesta de la API.
  */
 export const signup = async (userData) => {
+  console.log('Intentando registrar usuario con datos:', userData); // Log descriptivo
   try {
-    const response = await fetch(`${API_URL}/signup`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(userData),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Error al registrar el usuario');
-    }
-
-    return await response.json();
+    const response = await apiClient.post('/auth/signup', userData);
+    console.log('Registro exitoso:', response.data); // Log descriptivo
+    return response.data;
   } catch (error) {
-    console.error('Error en signup service:', error);
-    throw error;
+    console.error('Error en signup service:', error.response?.data || error.message); // Log descriptivo
+    throw error.response?.data || error.message;
   }
 };
 
 /**
  * Inicia sesión de un usuario.
- * @param {object} credentials - Credenciales del usuario (nombreUsuarioOrEmail, contrasena).
+ * @param {object} credentials - Credenciales del usuario (email, contrasena).
  * @returns {Promise<object>} - La respuesta de la API con el token.
  */
 export const login = async (credentials) => {
+  console.log('Intentando iniciar sesión con credenciales:', credentials); // Log descriptivo
   try {
-    const response = await fetch(`${API_URL}/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        nombreUsuarioOrEmail: credentials.email, // El backend espera 'nombreUsuarioOrEmail'
-        contrasena: credentials.password,
-      }),
+    const response = await apiClient.post('/auth/login', {
+      email: credentials.email, // Corregido: el backend espera 'email' directamente
+      contrasena: credentials.contrasena,
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Error al iniciar sesión');
-    }
-
-    return await response.json();
+    console.log('Inicio de sesión exitoso:', response.data); // Log descriptivo
+    return response.data;
   } catch (error) {
-    console.error('Error en login service:', error);
-    throw error;
+    console.error('Error en login service:', error.response?.data || error.message); // Log descriptivo
+    throw error.response?.data || error.message;
   }
 };

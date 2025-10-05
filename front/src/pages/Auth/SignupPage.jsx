@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // Importar Link para el enlace de login
 import { signup as signupService } from '../../services/authService';
+import '../../styles/pages/SignupPage.scss'; // Importar estilos SCSS
 
 const SignupPage = () => {
   const [formData, setFormData] = useState({
-    nombre_usuario: '',
+    nombreUsuario: '', // Cambiado de 'nombre_usuario' a 'nombreUsuario'
     email: '',
     contrasena: ''
   });
@@ -24,35 +25,40 @@ const SignupPage = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    console.log('Intentando registrar usuario:', formData); // Log descriptivo
+
     try {
+      // El servicio de signup espera { nombreUsuario, email, contrasena }
       await signupService(formData);
+      console.log('Registro exitoso.'); // Log descriptivo
       setSuccess('¡Registro exitoso! Redirigiendo al login...');
       setTimeout(() => {
         navigate('/login');
       }, 2000);
     } catch (err) {
-      setError(err.message || 'Error al registrarse');
+      console.error('Error al registrarse:', err); // Log descriptivo
+      setError(err.message || 'Error al registrarse. Inténtalo de nuevo.');
     }
   };
 
   return (
-    <div>
+    <div className="signup-page">
       <h2>Crear Cuenta</h2>
-      <form onSubmit={handleSubmit}>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-        {success && <p style={{ color: 'green' }}>{success}</p>}
-        <div>
-          <label htmlFor="nombre_usuario">Nombre de Usuario:</label>
+      <form onSubmit={handleSubmit} className="auth-form">
+        {error && <p className="error-message">{error}</p>}
+        {success && <p className="success-message">{success}</p>}
+        <div className="form-group">
+          <label htmlFor="nombreUsuario">Nombre de Usuario:</label> {/* Cambiado de 'nombre_usuario' a 'nombreUsuario' */}
           <input
             type="text"
-            id="nombre_usuario"
-            name="nombre_usuario"
-            value={formData.nombre_usuario}
+            id="nombreUsuario"
+            name="nombreUsuario"
+            value={formData.nombreUsuario}
             onChange={handleChange}
             required
           />
         </div>
-        <div>
+        <div className="form-group">
           <label htmlFor="email">Email:</label>
           <input
             type="email"
@@ -63,7 +69,7 @@ const SignupPage = () => {
             required
           />
         </div>
-        <div>
+        <div className="form-group">
           <label htmlFor="contrasena">Contraseña:</label>
           <input
             type="password"
@@ -72,9 +78,13 @@ const SignupPage = () => {
             value={formData.contrasena}
             onChange={handleChange}
             required
+            minLength="6" // Añadir requisito de longitud mínima
           />
         </div>
-        <button type="submit">Registrarse</button>
+        <button type="submit" className="submit-button">Registrarse</button>
+        <p className="login-link">
+          ¿Ya tienes cuenta? <Link to="/login">Inicia sesión aquí</Link>
+        </p>
       </form>
     </div>
   );

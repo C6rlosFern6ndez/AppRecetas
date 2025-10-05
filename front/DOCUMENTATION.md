@@ -35,7 +35,7 @@ http://localhost:8080/api/
 - **Formato**: HTTP URLs estándar
 
 ### Cors y Seguridad
-- **Origen Permitido**: Configurado para `http://localhost:3000` (frontend React dev)
+- **Origen Permitido**: Configurado para `http://localhost:5173/` (frontend React dev)
 - **Headers Permitidos**: `Authorization, Content-Type, Accept`
 - **Métodos Permitidos**: `GET, POST, PUT, DELETE, OPTIONS`
 

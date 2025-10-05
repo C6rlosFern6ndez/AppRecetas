@@ -10,12 +10,21 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired; // Importar Autowired
 
 import java.util.Date;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import java.util.Date; // Importar Date
 import javax.crypto.SecretKey;
+
+import jakarta.servlet.http.HttpServletRequest; // Importar HttpServletRequest
+import org.springframework.util.StringUtils; // Importar StringUtils
+
+import com.recetas.backend.domain.repository.UsuarioRepository; // Importar UsuarioRepository
+import com.recetas.backend.domain.entity.Usuario; // Importar Usuario
+import org.springframework.security.core.userdetails.UsernameNotFoundException; // Importar UsernameNotFoundException
 
 /**
  * Utilidad para generar y validar tokens JWT.
@@ -33,6 +42,9 @@ public class JwtUtils {
     @Value("${app.jwt.expirationMs:86400000}") // Tiempo de expiración del token en milisegundos (24 horas)
     private int jwtExpirationMs;
 
+    @Autowired
+    private UsuarioRepository usuarioRepository; // Inyectar UsuarioRepository
+
     /**
      * Genera un token JWT a partir de la autenticación del usuario.
      *
@@ -41,10 +53,18 @@ public class JwtUtils {
      */
     public String generateJwtToken(Authentication authentication) {
         UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
+        String username = userPrincipal.getUsername(); // Obtener el nombre de usuario
+
+        // Buscar el usuario por nombre de usuario para obtener el email
+        Usuario usuario = usuarioRepository.findByNombreUsuario(username)
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "Usuario no encontrado con el nombre de usuario: " + username));
+
+        String userEmail = usuario.getEmail(); // Obtener el email del usuario
 
         Key key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         return Jwts.builder()
-                .subject((userPrincipal.getUsername()))
+                .subject(userEmail) // Usar el email como subject del token
                 .issuedAt(new Date())
                 .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
                 .signWith(key) // Firma el token con la clave secreta
@@ -64,6 +84,33 @@ public class JwtUtils {
         SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         return Jwts.parser().verifyWith(key).build()
                 .parseSignedClaims(token).getPayload().getSubject();
+    }
+
+    /**
+     * Obtiene la fecha de expiración de un token JWT.
+     *
+     * @param token El token JWT.
+     * @return La fecha de expiración.
+     */
+    public Date getExpirationDateFromJwtToken(String token) {
+        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        return Jwts.parser().verifyWith(key).build()
+                .parseSignedClaims(token).getPayload().getExpiration();
+    }
+
+    /**
+     * Extrae el token JWT de la cabecera 'Authorization' de la petición.
+     *
+     * @param request La petición HTTP.
+     * @return El token JWT si existe, o null en caso contrario.
+     */
+    public String getJwtFromRequest(HttpServletRequest request) {
+        String headerAuth = request.getHeader("Authorization");
+
+        if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
+            return headerAuth.substring(7);
+        }
+        return null;
     }
 
     /**

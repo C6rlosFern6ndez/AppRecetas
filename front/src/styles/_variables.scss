@@ -1,12 +1,21 @@
 // Paleta de Colores
-$primary-color: #ff6347;    // Tomate
-$secondary-color: #4682b4;  // Azul acero
-$accent-color: #32cd32;     // Verde lima
-$background-color: #f5f5f5; // Gris claro
-$text-color: #333;          // Gris oscuro
-$white: #ffffff;
-$black: #000000;
-$border-color: #ddd;
+$color-primary: #ff6347;    // Tomate
+$color-secondary: #4682b4;  // Azul acero
+$color-accent: #32cd32;     // Verde lima
+$color-background-light: #f5f5f5; // Gris claro para fondos claros
+$color-background-dark: #2c3e50; // Gris oscuro para fondos oscuros
+$color-text-dark: #333;          // Gris oscuro para texto
+$color-text-light: #f5f5f5; // Gris claro para texto en fondos oscuros
+$color-white: #ffffff;
+$color-black: #000000;
+$color-border: #ddd;
+$color-danger: #e74c3c;     // Rojo para errores
+$color-success: #2ecc71;    // Verde para éxito
+$color-warning: #f39c12;    // Naranja para advertencias
+$color-info: #3498db;       // Azul para información
+$color-gray-light: #bdc3c7; // Gris claro para elementos deshabilitados
+$color-gray-medium: #95a5a6; // Gris medio
+$color-gray-dark: #7f8c8d; // Gris oscuro
 
 // Tipografía
 $font-family-primary: 'Helvetica Neue', Helvetica, Arial, sans-serif;

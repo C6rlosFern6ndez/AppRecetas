@@ -41,63 +41,40 @@ class UserDetailsServiceImplTest {
     }
 
     @Test
-    @DisplayName("Debería cargar el usuario por nombre de usuario")
-    void loadUserByUsername_shouldLoadUserByUsername() {
-        // Simula el comportamiento del repositorio para encontrar por nombre de usuario
-        when(usuarioRepository.findByNombreUsuario(anyString())).thenReturn(Optional.of(usuario));
-
-        // Llama al método del servicio
-        UserDetails userDetails = userDetailsService.loadUserByUsername("testuser");
-
-        // Verifica que los detalles del usuario no sean nulos y el nombre de usuario
-        // sea el esperado
-        assertNotNull(userDetails);
-        assertEquals("testuser", userDetails.getUsername());
-
-        // Verifica que el método findByNombreUsuario del repositorio fue llamado una
-        // vez
-        verify(usuarioRepository, times(1)).findByNombreUsuario(anyString());
-        verify(usuarioRepository, times(0)).findByEmail(anyString()); // No debería llamar a findByEmail si encuentra
-                                                                      // por nombre de usuario
-    }
-
-    @Test
-    @DisplayName("Debería cargar el usuario por email si no se encuentra por nombre de usuario")
+    @DisplayName("Debería cargar el usuario por email")
     void loadUserByUsername_shouldLoadUserByEmail() {
-        // Simula el comportamiento del repositorio para no encontrar por nombre de
-        // usuario, pero sí por email
-        when(usuarioRepository.findByNombreUsuario(anyString())).thenReturn(Optional.empty());
+        // Simula el comportamiento del repositorio para encontrar por email
         when(usuarioRepository.findByEmail(anyString())).thenReturn(Optional.of(usuario));
 
         // Llama al método del servicio
         UserDetails userDetails = userDetailsService.loadUserByUsername("test@example.com");
 
         // Verifica que los detalles del usuario no sean nulos y el nombre de usuario
-        // sea el esperado (que en este caso es el nombre de usuario)
+        // sea el esperado
         assertNotNull(userDetails);
         assertEquals("testuser", userDetails.getUsername());
 
-        // Verifica que ambos métodos del repositorio fueron llamados
-        verify(usuarioRepository, times(1)).findByNombreUsuario(anyString());
+        // Verifica que el método findByEmail del repositorio fue llamado una vez
         verify(usuarioRepository, times(1)).findByEmail(anyString());
+        verify(usuarioRepository, times(0)).findByNombreUsuario(anyString()); // No debería llamar a findByNombreUsuario
     }
 
     @Test
-    @DisplayName("Debería lanzar UsernameNotFoundException si el usuario no es encontrado")
+    @DisplayName("Debería lanzar UsernameNotFoundException si el usuario no es encontrado por email")
     void loadUserByUsername_shouldThrowUsernameNotFoundException() {
-        // Simula el comportamiento del repositorio para no encontrar el usuario
-        when(usuarioRepository.findByNombreUsuario(anyString())).thenReturn(Optional.empty());
+        // Simula el comportamiento del repositorio para no encontrar el usuario por
+        // email
         when(usuarioRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
         // Verifica que se lanza la excepción esperada
         UsernameNotFoundException exception = assertThrows(UsernameNotFoundException.class,
-                () -> userDetailsService.loadUserByUsername("nonexistent"));
+                () -> userDetailsService.loadUserByUsername("nonexistent@example.com"));
 
         // Verifica el mensaje de la excepción
-        assertEquals("Usuario no encontrado con el nombre de usuario o email: nonexistent", exception.getMessage());
+        assertEquals("Usuario no encontrado con el email: nonexistent@example.com", exception.getMessage());
 
-        // Verifica que ambos métodos del repositorio fueron llamados
-        verify(usuarioRepository, times(1)).findByNombreUsuario(anyString());
+        // Verifica que el método findByEmail del repositorio fue llamado una vez
         verify(usuarioRepository, times(1)).findByEmail(anyString());
+        verify(usuarioRepository, times(0)).findByNombreUsuario(anyString()); // No debería llamar a findByNombreUsuario
     }
 }

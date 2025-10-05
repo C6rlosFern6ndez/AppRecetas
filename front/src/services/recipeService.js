@@ -209,3 +209,44 @@ export const searchRecipes = async (filtros = {}, page = 0, size = 20) => {
         throw error;
     }
 };
+
+/**
+ * Crea una nueva receta en el backend.
+ * @param {object} recipeData - Datos de la receta a crear.
+ * @returns {Promise<object>} - Promesa que resuelve con la receta creada.
+ */
+export const createReceta = async (recipeData) => {
+    console.log('Creando nueva receta:', recipeData);
+    try {
+        const response = await apiClient.post('/recetas', recipeData);
+        return response.data;
+    } catch (error) {
+        console.error('Error creando receta:', error);
+        throw error;
+    }
+};
+
+/**
+ * Sube una imagen para una receta específica.
+ * @param {number} recetaId - ID de la receta a la que se asociará la imagen.
+ * @param {File} file - Objeto File de la imagen a subir.
+ * @returns {Promise<object>} - Promesa que resuelve con la URL de la imagen subida.
+ */
+export const uploadRecetaImage = async (recetaId, file) => {
+    console.log(`Subiendo imagen para receta ID: ${recetaId}`);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await apiClient.post(`/recetas/${recetaId}/imagen`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+            timeout: 30000, // 30 segundos para subida de imagen
+        });
+        return response.data; // Debería devolver la URL de la imagen
+    } catch (error) {
+        console.error(`Error subiendo imagen para receta ID ${recetaId}:`, error);
+        throw error;
+    }
+};

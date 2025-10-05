@@ -1,4 +1,4 @@
-@use '../variables' as text;
+@use '../variables' as variables;
 
 .footer {
   position: fixed;
@@ -6,9 +6,9 @@
   left: 0;
   width: 100%;
   z-index: 1000;
-  background-color: text.$text-color;
-  color: text.$white;
+  background-color: variables.$color-text-dark; // Usar la variable correcta
+  color: variables.$color-white; // Usar la variable correcta
   text-align: center;
-  padding: text.$spacing-md;
-  margin-top: text.$spacing-lg;
+  padding: variables.$spacing-md;
+  margin-top: variables.$spacing-lg;
 }
