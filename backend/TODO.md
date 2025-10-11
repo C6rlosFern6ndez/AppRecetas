@@ -1,0 +1,37 @@
+# Tareas Pendientes
+
+- [x] Completar el archivo 'Anotaciones/Rutas.txt' con las rutas faltantes, modificar nombres a español y corregir referencias a "test".
+- [x] Crear la estructura de directorios base para el backend.
+- [x] Eliminar archivos de controladores, servicios y repositorios existentes (estructura anterior).
+- [x] Eliminar las carpetas public, auth y admin de controllers, services y repositories.
+- [x] Recrear archivos de controladores, servicios y repositorios en sus ubicaciones originales.
+- [x] Crear archivos Java vacíos para modelos, DTOs, seguridad, autenticación, configuración, excepciones y utilidades.
+- [x] Crear un archivo SQL inicial para Flyway en `src/main/resources/db/migration/V1__initial_schema.sql`.
+- [x] Implementar la base de datos con Flyway (copiar esquema SQL y configurar `application.properties`).
+- [x] Desarrollar Modelos (Entidades JPA) con anotaciones de Lombok y relaciones.
+- [x] Desarrollar Repositorios (Spring Data JPA) con métodos de consulta.
+- [x] Implementar Seguridad (Spring Security y JWT).
+- [x] Desarrollar Servicios (Lógica de Negocio).
+- [x] Desarrollar DTOs (Data Transfer Objects) para entrada/salida y validación.
+- [x] Desarrollar Controladores (REST APIs) siguiendo las rutas definidas.
+- [x] Implementar Manejo de Excepciones Global.
+- [x] Configurar CORS.
+- [x] Implementar el Servicio de Imágenes (ImgBB).
+- [x] Escribir Pruebas Unitarias e Integración.
+- [x] Asegurar la Documentación OpenAPI/Swagger.
+- [x] Corregir error de autenticación de la base de datos.
+- [x] Añadir salida personalizada en `BackendApplication.java` con el puerto del servidor y la conexión con la BBDD.
+- [ ] Iniciar la aplicación y verificar que se ejecute correctamente. (Pendiente de la configuración del entorno de la base de datos)
+- [ ] Añadir más pruebas unitarias y de integración para otros componentes.
+- [x] Verificar controladores existentes.
+- [x] Aclarar la necesidad de controladores para todos los modelos.
+- [x] Crear pruebas unitarias para AuthService.
+- [x] Crear pruebas de integración para AuthController.
+- [x] Crear pruebas unitarias para UsuarioService.
+- [x] Crear pruebas de integración para UsuarioController.
+- [x] Crear pruebas unitarias para IngredienteService.
+- [x] Crear pruebas de integración para IngredienteController.
+- [ ] Crear pruebas unitarias para NotificacionService.
+- [ ] Crear pruebas de integración para NotificacionController.
+- [ ] Crear pruebas unitarias para RecetaService.
+- [ ] Crear pruebas de integración para RecetaController.

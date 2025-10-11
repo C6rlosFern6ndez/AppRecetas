@@ -1,143 +1,59 @@
 package com.recetas.backend.security;
 
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
-import org.springframework.beans.factory.annotation.Autowired; // Importar Autowired
 
-import java.util.Date;
-import io.jsonwebtoken.security.Keys;
-import java.nio.charset.StandardCharsets;
 import java.security.Key;
-import java.util.Date; // Importar Date
-import javax.crypto.SecretKey;
+import java.util.Date;
 
-import jakarta.servlet.http.HttpServletRequest; // Importar HttpServletRequest
-import org.springframework.util.StringUtils; // Importar StringUtils
-
-import com.recetas.backend.domain.repository.UsuarioRepository; // Importar UsuarioRepository
-import com.recetas.backend.domain.entity.Usuario; // Importar Usuario
-import org.springframework.security.core.userdetails.UsernameNotFoundException; // Importar UsernameNotFoundException
-
-/**
- * Utilidad para generar y validar tokens JWT.
- */
 @Component
 public class JwtUtils {
-
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
-    // Estas propiedades deberían venir de application.properties o application.yml
-    // Por ahora, se definen valores de ejemplo.
-    @Value("${app.jwt.secret:supersecretkey}") // Clave secreta para firmar los tokens
+    @Value("${recetas.app.jwtSecret}")
     private String jwtSecret;
 
-    @Value("${app.jwt.expirationMs:86400000}") // Tiempo de expiración del token en milisegundos (24 horas)
+    @Value("${recetas.app.jwtExpirationMs}")
     private int jwtExpirationMs;
 
-    @Autowired
-    private UsuarioRepository usuarioRepository; // Inyectar UsuarioRepository
-
-    /**
-     * Genera un token JWT a partir de la autenticación del usuario.
-     *
-     * @param authentication La autenticación del usuario.
-     * @return El token JWT generado.
-     */
     public String generateJwtToken(Authentication authentication) {
-        UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
-        String username = userPrincipal.getUsername(); // Obtener el nombre de usuario
+        UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
 
-        // Buscar el usuario por nombre de usuario para obtener el email
-        Usuario usuario = usuarioRepository.findByNombreUsuario(username)
-                .orElseThrow(() -> new UsernameNotFoundException(
-                        "Usuario no encontrado con el nombre de usuario: " + username));
-
-        String userEmail = usuario.getEmail(); // Obtener el email del usuario
-
-        Key key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         return Jwts.builder()
-                .subject(userEmail) // Usar el email como subject del token
-                .issuedAt(new Date())
-                .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
-                .signWith(key) // Firma el token con la clave secreta
+                .setSubject((userPrincipal.getUsername()))
+                .setIssuedAt(new Date())
+                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .signWith(key(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    /**
-     * Obtiene el nombre de usuario a partir de un token JWT.
-     *
-     * @param token El token JWT.
-     * @return El nombre de usuario.
-     */
+    private Key key() {
+        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+    }
+
     public String getUserNameFromJwtToken(String token) {
-        // Usando la API correcta para versiones modernas de JJWT
-        // Se utiliza verifyWith y build para obtener un JwtParser, y luego
-        // parseClaimsJws
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-        return Jwts.parser().verifyWith(key).build()
-                .parseSignedClaims(token).getPayload().getSubject();
+        return Jwts.parserBuilder().setSigningKey(key()).build()
+                .parseClaimsJws(token).getBody().getSubject();
     }
 
-    /**
-     * Obtiene la fecha de expiración de un token JWT.
-     *
-     * @param token El token JWT.
-     * @return La fecha de expiración.
-     */
-    public Date getExpirationDateFromJwtToken(String token) {
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-        return Jwts.parser().verifyWith(key).build()
-                .parseSignedClaims(token).getPayload().getExpiration();
-    }
-
-    /**
-     * Extrae el token JWT de la cabecera 'Authorization' de la petición.
-     *
-     * @param request La petición HTTP.
-     * @return El token JWT si existe, o null en caso contrario.
-     */
-    public String getJwtFromRequest(HttpServletRequest request) {
-        String headerAuth = request.getHeader("Authorization");
-
-        if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
-            return headerAuth.substring(7);
-        }
-        return null;
-    }
-
-    /**
-     * Valida la firma y la estructura del token JWT.
-     *
-     * @param authToken El token JWT a validar.
-     * @return true si el token es válido, false en caso contrario.
-     */
     public boolean validateJwtToken(String authToken) {
         try {
-            // Usando la API correcta para versiones modernas de JJWT
-            // Se utiliza verifyWith y build para obtener un JwtParser, y luego
-            // parseClaimsJws
-            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-            Jwts.parser().verifyWith(key).build()
-                    .parseSignedClaims(authToken);
+            Jwts.parserBuilder().setSigningKey(key()).build().parse(authToken);
             return true;
-        } catch (io.jsonwebtoken.security.SignatureException e) {
-            logger.error("Firma JWT inválida: {}", e.getMessage());
         } catch (MalformedJwtException e) {
-            logger.error("Token JWT mal formado: {}", e.getMessage());
+            logger.error("Token JWT inválido: {}", e.getMessage());
         } catch (ExpiredJwtException e) {
             logger.error("Token JWT expirado: {}", e.getMessage());
         } catch (UnsupportedJwtException e) {
-            logger.error("Tipo de token JWT no soportado: {}", e.getMessage());
+            logger.error("Token JWT no soportado: {}", e.getMessage());
         } catch (IllegalArgumentException e) {
-            logger.error("Argumento inválido para JWT: {}", e.getMessage());
+            logger.error("La cadena de reclamos JWT está vacía: {}", e.getMessage());
         }
 
         return false;

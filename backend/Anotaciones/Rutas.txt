@@ -1,0 +1,66 @@
+api/public/**
+Todas las rutas públicas de la aplicación
+
+GET	/api/public/recetas	Obtener una lista paginada de todas las recetas públicas. (Para la vista inicial de búsqueda).
+GET	/api/public/recetas/:id	Obtener el contenido y los metadatos de una receta específica.
+GET	/api/public/categorias	Obtener una lista de todas las categorías disponibles para la búsqueda.
+POST    /api/public/login	Permite a un usuario iniciar sesión y obtener un token JWT.
+POST	/api/public/registro	Permite a un usuario crear una cuenta nueva.
+GET	/api/public/recetas/buscar	Buscar recetas con filtros (título, ingrediente, dificultad, tiempo máximo, categoría).
+GET	/api/public/categorias/:id/recetas	Obtener recetas por categoría.
+GET	/api/public/ingredientes	Listar todos los ingredientes.
+GET	/api/public/ingredientes/:id	Detalle de un ingrediente.
+
+
+api/auth/**
+Todas las rutas que requieran estar logueado
+
+GET	/api/auth/perfil	Obtener los detalles del usuario logueado (no requiere el ID en la URL).
+PUT	/api/auth/perfil	Actualizar la información del perfil del usuario logueado.
+POST	/api/auth/recetas	Crear una nueva receta.
+GET	/api/auth/recetas/mis-recetas	Obtener una lista de las recetas creadas por el usuario logueado.
+PUT	/api/auth/recetas/:id	Actualizar una receta (Auth required).
+DELETE	/api/auth/recetas/:id	Eliminar una receta (Auth required).
+POST	/api/auth/recetas/:id/imagen	Subir imagen de receta (multipart/form-data).
+DELETE	/api/auth/recetas/:id/imagen	Eliminar imagen de receta.
+POST	/api/auth/recetas/:id/me-gusta	Dar/quitar me gusta a una receta (Auth required).
+GET	/api/auth/recetas/:id/me-gustas	Lista de usuarios que le dieron me gusta a una receta.
+POST	/api/auth/recetas/:id/calificar	Calificar una receta (Auth required).
+GET	/api/auth/recetas/:id/calificacion	Obtener la calificación del usuario para una receta.
+POST	/api/auth/recetas/:id/comentarios	Agregar un comentario a una receta (Auth required).
+GET	/api/auth/recetas/:id/comentarios	Lista de comentarios de una receta.
+POST	/api/auth/recetas/:recetaId/categorias/:categoriaId	Agregar categoría a una receta.
+DELETE	/api/auth/recetas/:recetaId/categorias/:categoriaId	Remover categoría de una receta.
+GET	/api/auth/recetas/:recetaId/calificaciones	Calificaciones de una receta.
+
+GET	/api/auth/usuarios/:id	Obtener perfil de usuario por ID.
+PUT	/api/auth/usuarios/:id	Actualizar perfil de usuario por ID (Auth required).
+DELETE	/api/auth/usuarios/:id	Eliminar cuenta de usuario por ID (Auth required).
+POST	/api/auth/usuarios/:id/seguir	Seguir a un usuario (Auth required).
+DELETE	/api/auth/usuarios/:id/dejar-de-seguir	Dejar de seguir a un usuario (Auth required).
+GET	/api/auth/usuarios/:id/seguidores	Lista de seguidores de un usuario.
+GET	/api/auth/usuarios/:id/seguidos	Lista de usuarios seguidos por un usuario.
+
+POST	/api/auth/ingredientes	Crear ingrediente (Auth required).
+PUT	/api/auth/ingredientes/:id	Actualizar ingrediente (Auth required).
+DELETE	/api/auth/ingredientes/:id	Eliminar ingrediente (Auth required).
+
+GET	/api/auth/notificaciones	Notificaciones del usuario actual.
+PUT	/api/auth/notificaciones/:id/leer	Marcar notificación como leída.
+PUT	/api/auth/notificaciones/leer-todas	Marcar todas las notificaciones como leídas.
+DELETE	/api/auth/notificaciones/:id	Eliminar notificación.
+
+
+api/admin/**
+Todas las rutas que requieran estar logueados y tener el rol de Admin o SuperAdmin
+
+GET	/api/admin/usuarios	Obtener una lista completa de todos los usuarios registrados (para gestión).
+GET	/api/admin/reportes/recetas	Obtener métricas y reportes sobre la actividad de las recetas (número de comentarios, uso, etc.).
+DELETE	/api/admin/usuarios/:userId	Eliminar una cuenta de usuario.
+PUT	/api/admin/usuarios/:userId/bloquear	Bloquear/desbloquear una cuenta específica.
+PATCH	/api/admin/recetas/:recetaId/validar	Marcar una receta como "Correcta" o "Errónea" después de la revisión.
+DELETE	/api/admin/recetas/:recetaId	Eliminar una receta (incluso si no fue creada por el admin).
+
+POST	/api/admin/categorias	Crear categoría (Admin required).
+PUT	/api/admin/categorias/:id	Actualizar categoría (Admin required).
+DELETE	/api/admin/categorias/:id	Eliminar categoría (Admin required).

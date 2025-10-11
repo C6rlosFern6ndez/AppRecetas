@@ -1,118 +1,73 @@
 package com.recetas.backend.config;
 
+import com.recetas.backend.security.AuthEntryPointJwt;
+import com.recetas.backend.security.JwtRequestFilter;
+import com.recetas.backend.security.UserDetailsServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.recetas.backend.security.AuthEntryPointJwt;
-import com.recetas.backend.security.AuthTokenFilter;
-import com.recetas.backend.security.JwtUtils; // Importar JwtUtils
-import com.recetas.backend.domain.repository.RevokedTokenRepository; // Importar RevokedTokenRepository
-
-/**
- * Configuración de seguridad para la aplicación.
- */
 @Configuration
-@EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private final AuthEntryPointJwt unauthorizedHandler;
-    private final JwtUtils jwtUtils; // Añadir JwtUtils como dependencia
-    private final RevokedTokenRepository revokedTokenRepository; // Inyectar RevokedTokenRepository
+    @Autowired
+    UserDetailsServiceImpl userDetailsService;
 
-    /**
-     * Se utiliza inyección por constructor en lugar de @Autowired en campos.
-     * Esto es una mejor práctica porque hace las dependencias obligatorias y
-     * explícitas.
-     */
-    public SecurityConfig(AuthEntryPointJwt unauthorizedHandler, JwtUtils jwtUtils,
-            RevokedTokenRepository revokedTokenRepository) {
-        this.unauthorizedHandler = unauthorizedHandler;
-        this.jwtUtils = jwtUtils;
-        this.revokedTokenRepository = revokedTokenRepository;
+    @Autowired
+    private AuthEntryPointJwt unauthorizedHandler;
+
+    @Bean
+    public JwtRequestFilter authenticationJwtTokenFilter() {
+        return new JwtRequestFilter();
     }
 
     @Bean
-    AuthTokenFilter authenticationJwtTokenFilter(UserDetailsService userDetailsService) {
-        return new AuthTokenFilter(jwtUtils, userDetailsService, revokedTokenRepository); // Pasar JwtUtils,
-                                                                                          // UserDetailsService y
-                                                                                          // RevokedTokenRepository al
-                                                                                          // constructor
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+
+        return authProvider;
     }
 
     @Bean
-    PasswordEncoder passwordEncoder() {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+        return authConfig.getAuthenticationManager();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
-        return authConfig.getAuthenticationManager();
-    }
-
-    /**
-     * Bean para configurar la cadena de filtros de seguridad.
-     */
-    @Bean
-    SecurityFilterChain filterChain(HttpSecurity http, UserDetailsService userDetailsService) throws Exception {
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http.csrf(AbstractHttpConfigurer::disable)
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Permitir acceso a rutas de autenticación y Swagger UI
-                        .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**",
-                                "/webjars/**")
-                        .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/recetas/**").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/api/auth/**").authenticated()
+                        .requestMatchers("/api/admin/**").hasAnyAuthority("ADMIN", "SUPERADMIN")
                         .anyRequest().authenticated());
 
-        http.addFilterBefore(authenticationJwtTokenFilter(userDetailsService),
-                UsernamePasswordAuthenticationFilter.class);
+        http.authenticationProvider(authenticationProvider());
+
+        http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
-    }
-
-    /**
-     * Bean para configurar la política de CORS (Cross-Origin Resource Sharing).
-     * Permite solicitudes desde orígenes específicos, como el frontend de la
-     * aplicación.
-     * 
-     * @return la fuente de configuración de CORS.
-     */
-    @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        // Se permite el origen del frontend en desarrollo y el propio backend
-        // Se añade soporte para http://localhost:517* para permitir la comunicación con
-        // aplicaciones frontend en diferentes puertos.
-        configuration.setAllowedOrigins(java.util.Arrays.asList("http://localhost:4200", "http://localhost:8080"));
-        configuration.addAllowedOriginPattern("http://localhost:517*"); // Permite cualquier puerto que comience con 517
-        // Se especifican los métodos HTTP permitidos
-        configuration.setAllowedMethods(java.util.Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        // Se definen las cabeceras permitidas
-        configuration.setAllowedHeaders(java.util.Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
-        // Se permite el envío de credenciales (como cookies o tokens de autorización)
-        configuration.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // Se aplica la configuración CORS a todas las rutas de la aplicación
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
     }
 }
